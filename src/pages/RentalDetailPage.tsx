@@ -1,0 +1,180 @@
+// @ts-nocheck
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { ArrowLeft, Check, Calendar, User, Mail, Phone, Building, FileText, MapPin, Shield, Truck } from 'lucide-react';
+import { rentalEquipmentData } from '../data/business/rentals.data';
+import { RentalEquipment } from '../types/business.types';
+import RentalBookingForm from '../components/forms/RentalBookingForm';
+
+const RentalDetailPage: React.FC = () => {
+  const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
+  const [equipment, setEquipment] = useState<RentalEquipment | null>(null);
+  const [showBookingForm, setShowBookingForm] = useState(false);
+
+  useEffect(() => {
+    if (slug) {
+      // Find equipment by converting slug back to title
+      const equipmentTitle = slug.replace(/-/g, ' ');
+      const foundEquipment = rentalEquipmentData.find(
+        item => item.title.toLowerCase() === equipmentTitle.toLowerCase()
+      );
+      
+      if (foundEquipment) {
+        setEquipment(foundEquipment);
+      } else {
+        // Redirect to rentals page if equipment not found
+        navigate('/rentals');
+      }
+    }
+  }, [slug, navigate]);
+
+  if (!equipment) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF5722]"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center gap-4">
+            <Link
+              to="/rentals"
+              className="flex items-center gap-2 text-gray-600 hover:text-[#FF5722] transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span className="font-medium">Back to Rentals</span>
+            </Link>
+            <div className="h-6 w-px bg-gray-300" />
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{equipment.title}</h1>
+              <p className="text-sm text-gray-600">{equipment.category}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column - Media */}
+          <div className="space-y-6">
+            {/* Video */}
+            <div className="aspect-video rounded-xl overflow-hidden shadow-lg">
+              <iframe
+                src={equipment.videoUrl}
+                title={`${equipment.title} product video`}
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="w-full h-full"
+              />
+            </div>
+
+          </div>
+
+          {/* Right Column - Details */}
+          <div className="space-y-6">
+            {/* Pricing Card */}
+            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-3xl font-bold text-gray-900">GHS {equipment.price}</p>
+                  <p className="text-sm text-gray-600">per day</p>
+                </div>
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  Available
+                </span>
+              </div>
+              
+              <button
+                onClick={() => setShowBookingForm(true)}
+                className="w-full bg-[#FF5722] text-white font-semibold py-3 px-6 rounded-lg hover:bg-[#E64A19] transition-colors"
+              >
+                Rent Now
+              </button>
+            </div>
+
+            {/* Equipment Details */}
+            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Equipment Details</h3>
+              <p className="text-gray-600 mb-6">{equipment.subtitle}</p>
+              
+              <h4 className="font-semibold text-gray-900 mb-4">Key Features</h4>
+              <ul className="space-y-3">
+                {equipment.features.map((feature, index) => (
+                  <li key={index} className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-gray-700">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Rental Information */}
+            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Rental Information</h3>
+              <div className="space-y-4 text-sm text-gray-600">
+                <div className="flex items-center gap-3">
+                  <Calendar className="w-4 h-4 text-[#FF5722]" />
+                  <span>Minimum rental period: 1 day</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Shield className="w-4 h-4 text-[#FF5722]" />
+                  <span>Insurance coverage available</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Truck className="w-4 h-4 text-[#FF5722]" />
+                  <span>Delivery and pickup services available</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <User className="w-4 h-4 text-[#FF5722]" />
+                  <span>Professional support included</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Additional Information */}
+        <div className="mt-12 bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+          <h3 className="text-2xl font-bold text-gray-900 mb-6">Need Help Choosing?</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center">
+              <Phone className="w-8 h-8 text-[#FF5722] mx-auto mb-3" />
+              <h4 className="font-semibold text-gray-900 mb-2">Call Us</h4>
+              <p className="text-gray-600 text-sm">Speak with our equipment specialists</p>
+              <p className="text-[#FF5722] font-medium mt-1">+233 XX XXX XXXX</p>
+            </div>
+            <div className="text-center">
+              <Mail className="w-8 h-8 text-[#FF5722] mx-auto mb-3" />
+              <h4 className="font-semibold text-gray-900 mb-2">Email Us</h4>
+              <p className="text-gray-600 text-sm">Get detailed equipment information</p>
+              <p className="text-[#FF5722] font-medium mt-1">rentals@solvexstudios.com</p>
+            </div>
+            <div className="text-center">
+              <MapPin className="w-8 h-8 text-[#FF5722] mx-auto mb-3" />
+              <h4 className="font-semibold text-gray-900 mb-2">Visit Us</h4>
+              <p className="text-gray-600 text-sm">See equipment in person</p>
+              <p className="text-[#FF5722] font-medium mt-1">Accra, Ghana</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Rental Booking Form Modal */}
+      <RentalBookingForm
+        isOpen={showBookingForm}
+        onClose={() => setShowBookingForm(false)}
+        equipment={equipment}
+      />
+    </div>
+  );
+};
+
+export default RentalDetailPage;

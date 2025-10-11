@@ -1,136 +1,224 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Loader as Loader2, CircleCheck as CheckCircle } from "lucide-react";
-import Card from "../components/Card";
-import { getRentalEquipment, updateRentalEquipment } from "../../../../lib/supabase/operations";
-import type { Database } from "../../../../lib/supabase/database.types";
+// FILE: src/pages/admin/DashboardPage/tabs/EquipmentTab.tsx
+import React, { useState, useEffect, ChangeEvent } from 'react';
+import { supabase } from '../../../../lib/supabase/client';
+import type { Database } from '../../../../lib/supabase/database.types';
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { Plus, Edit, Trash2, Eye, EyeOff } from 'lucide-react';
+import Card from '../components/Card';
+import { useToast } from '../../../../contexts/ToastContext';
 
-type Equipment = Database['public']['Tables']['rental_equipment']['Row'];
-type EquipmentStatus = Equipment['status'];
+type Rental = Database['public']['Tables']['rentals']['Row'];
 
 const EquipmentTab: React.FC = () => {
-  const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [rentals, setRentals] = useState<Rental[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
-  const [currentPrice, setCurrentPrice] = useState<number>(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingRental, setEditingRental] = useState<Partial<Rental> | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const { addToast } = useToast();
 
-  const fetchEquipment = useCallback(async () => {
-    setLoading(true);
-    const { data, error: fetchError } = await getRentalEquipment();
-    if (fetchError) {
-      setError("Failed to load equipment.");
-      console.error(fetchError);
+  const fetchRentals = async () => {
+    const { data, error } = await supabase
+      .from('rentals')
+      .select('*')
+      .order('order', { ascending: true });
+    
+    if (error) {
+      addToast({ type: 'error', title: 'Error', message: 'Could not fetch rental equipment.' });
     } else {
-      setEquipment(data || []);
+      setRentals(data as Rental[]);
     }
     setLoading(false);
-  }, []);
+  };
 
   useEffect(() => {
-    fetchEquipment();
-  }, [fetchEquipment]);
+    setLoading(true);
+    fetchRentals();
+  }, []);
 
+  const openModal = (rental: Partial<Rental> | null = null) => {
+    setEditingRental(rental || { name: '', category: '', price: 0, is_available: true });
+    setImageFile(null);
+    setIsModalOpen(true);
+  };
 
-  const handleUpdate = async (id: string, updates: Partial<Equipment>) => {
-    const originalEquipment = [...equipment];
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingRental(null);
+  };
+
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target;
+    if (!editingRental) return;
+
+    let finalValue: string | number | boolean = value;
+    if (type === 'number') finalValue = parseFloat(value) || 0;
+    if (type === 'checkbox') finalValue = (e.target as HTMLInputElement).checked;
     
-    // Optimistic UI update
-    setEquipment(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
+    setEditingRental({ ...editingRental, [name]: finalValue });
+  };
 
-    const { error: updateError } = await updateRentalEquipment(id, updates);
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) setImageFile(e.target.files[0]);
+  };
 
-    if (updateError) {
-      setError("Failed to save changes. Please refresh and try again.");
-      setEquipment(originalEquipment); // Revert on failure
+  const handleSave = async () => {
+    if (!editingRental?.name || !editingRental.category) {
+      addToast({ type: 'error', title: 'Validation Error', message: 'Name and Category are required.' });
+      return;
+    }
+
+    let image_path = editingRental.image_path || null;
+
+    if (imageFile) {
+      const filePath = `rentals/${Date.now()}-${imageFile.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('rental_images')
+        .upload(filePath, imageFile);
+
+      if (uploadError) {
+        addToast({ type: 'error', title: 'Image Upload Failed', message: uploadError.message });
+        return;
+      }
+      image_path = filePath;
+    }
+
+    const { id, ...rentalData } = { ...editingRental, image_path };
+    
+    const { error } = id
+      ? await supabase.from('rentals').update(rentalData).eq('id', id)
+      : await supabase.from('rentals').insert([rentalData]);
+
+    if (error) {
+      addToast({ type: 'error', title: 'Save Failed', message: error.message });
+    } else {
+      addToast({ type: 'success', title: `Rental item ${id ? 'updated' : 'created'}!` });
+      closeModal();
+      fetchRentals();
     }
   };
 
-  const handlePriceKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, id: string) => {
-    if (e.key === 'Enter') {
-      handleUpdate(id, { price: currentPrice });
-      setEditingPriceId(null);
-    } else if (e.key === 'Escape') {
-      setEditingPriceId(null);
+  const handleDelete = async (rental: Rental) => {
+    if (!window.confirm(`Are you sure you want to delete "${rental.name}"? This is permanent.`)) return;
+
+    const { error } = await supabase.from('rentals').delete().eq('id', rental.id);
+
+    if (error) {
+      addToast({ type: 'error', title: 'Delete Failed', message: error.message });
+    } else {
+      if (rental.image_path) {
+        await supabase.storage.from('rental_images').remove([rental.image_path]);
+      }
+      addToast({ type: 'success', title: 'Rental item deleted.' });
+      fetchRentals();
     }
   };
-  
-  const handlePriceBlur = (id: string) => {
-    handleUpdate(id, { price: currentPrice });
-    setEditingPriceId(null);
+
+  const toggleAvailability = async (rental: Rental) => {
+    const { error } = await supabase
+      .from('rentals')
+      .update({ is_available: !rental.is_available })
+      .eq('id', rental.id);
+    
+    if (error) {
+        addToast({ type: 'error', title: 'Update failed', message: error.message });
+    } else {
+        addToast({ type: 'success', title: `"${rental.name}" is now ${!rental.is_available ? 'available' : 'unavailable'}.` });
+        fetchRentals();
+    }
   };
 
-  const statusOptions: EquipmentStatus[] = ['Available', 'Maintenance', 'Retired'];
-  const statusColors: Record<EquipmentStatus, string> = {
-    Available: 'bg-green-100 text-green-800 ring-green-200',
-    Maintenance: 'bg-amber-100 text-amber-800 ring-amber-200',
-    Retired: 'bg-red-100 text-red-800 ring-red-200',
+  const onDragEnd = async (result: DropResult) => {
+    if (!result.destination) return;
+    const items = Array.from(rentals);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    setRentals(items);
+
+    const updates = items.map((item, index) => ({ id: item.id, order: index }));
+    
+    const { error } = await supabase.from('rentals').upsert(updates);
+    if (error) {
+      addToast({ type: 'error', title: 'Reorder Failed', message: error.message });
+      fetchRentals(); 
+    } else {
+      addToast({ type: 'success', title: 'Equipment order saved!' });
+    }
   };
 
   return (
-    <div className="space-y-6">
-      <Card title="Equipment Inventory & Management">
-        {loading ? (
-          <div className="flex justify-center items-center py-12"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>
-        ) : error ? (
-          <div className="text-center py-12 text-red-600">{error}</div>
-        ) : (
-          <div className="overflow-x-auto -mx-6">
-            <table className="min-w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr className="text-left text-gray-600">
-                  <th className="px-6 py-3 font-semibold">Item</th>
-                  <th className="px-6 py-3 font-semibold">Category</th>
-                  <th className="px-6 py-3 font-semibold text-center">Status</th>
-                  <th className="px-6 py-3 font-semibold text-right">Price/Day (GHS)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {equipment.map(item => (
-                  <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-4">
-                        <img src={item.images?.[0]} alt={item.title} className="w-12 h-12 object-contain rounded-md bg-gray-100 p-1" />
-                        <span className="font-medium text-gray-800">{item.title}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">{item.category}</td>
-                    <td className="px-6 py-4 text-center">
-                      <select
-                        value={item.status}
-                        onChange={(e) => handleUpdate(item.id, { status: e.target.value as EquipmentStatus })}
-                        className={`w-32 border-none rounded-full px-2.5 py-0.5 text-xs font-semibold appearance-none text-center ring-1 ring-inset focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${statusColors[item.status]}`}
-                      >
-                        {statusOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                      </select>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      {editingPriceId === item.id ? (
-                        <input
-                          type="number"
-                          value={currentPrice}
-                          onChange={(e) => setCurrentPrice(Number(e.target.value))}
-                          onKeyDown={(e) => handlePriceKeyDown(e, item.id)}
-                          onBlur={() => handlePriceBlur(item.id)}
-                          autoFocus
-                          className="w-24 text-right bg-white border border-blue-400 rounded-md px-2 py-1 shadow-inner"
-                        />
-                      ) : (
-                        <div
-                          onClick={() => { setEditingPriceId(item.id); setCurrentPrice(item.price); }}
-                          className="cursor-pointer font-semibold text-gray-800 p-1 rounded-md hover:bg-gray-200"
-                        >
-                          {item.price.toFixed(2)}
+    <Card title="Manage Rental Equipment" right={
+      <button onClick={() => openModal()} className="flex items-center gap-2 bg-[#FF5722] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#E64A19]">
+        <Plus size={16} /> Add Equipment
+      </button>
+    }>
+      {loading ? (
+        <p>Loading equipment...</p>
+      ) : (
+        <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable droppableId="rentals-list">
+            {(provided) => (
+              <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-3">
+                {rentals.map((item, index) => (
+                  <Draggable key={item.id} draggableId={String(item.id)} index={index}>
+                    {(provided) => (
+                      <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className="flex items-center bg-gray-50 p-3 rounded-lg border hover:shadow-md">
+                        <div className="flex-grow flex items-center gap-4">
+                          <img
+                            src={item.image_path ? `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/rental_images/${item.image_path}` : 'https://via.placeholder.com/64'}
+                            alt={item.name}
+                            className="w-16 h-16 object-cover rounded-md bg-gray-200"
+                          />
+                          <div>
+                            <h3 className="font-bold">{item.name}</h3>
+                            <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${item.is_available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                              {item.is_available ? 'Available' : 'Unavailable'}
+                            </span>
+                          </div>
                         </div>
-                      )}
-                    </td>
-                  </tr>
+                        <div className="flex gap-2">
+                          <button onClick={() => toggleAvailability(item)} className="p-2 text-gray-500 hover:bg-gray-200 rounded-md" aria-label="Toggle Availability">{item.is_available ? <Eye size={18} /> : <EyeOff size={18} />}</button>
+                          <button onClick={() => openModal(item)} className="p-2 text-gray-500 hover:bg-gray-200 rounded-md" aria-label="Edit"><Edit size={16} /></button>
+                          <button onClick={() => handleDelete(item)} className="p-2 text-red-500 hover:bg-red-100 rounded-md" aria-label="Delete"><Trash2 size={16} /></button>
+                        </div>
+                      </div>
+                    )}
+                  </Draggable>
                 ))}
-              </tbody>
-            </table>
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
+      )}
+
+      {isModalOpen && editingRental && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-2xl">
+            <h2 className="text-2xl font-bold mb-6">{editingRental.id ? 'Edit Equipment' : 'Add New Equipment'}</h2>
+            <div className="space-y-4">
+              <input type="text" name="name" value={editingRental.name || ''} onChange={handleInputChange} placeholder="Item Name" className="w-full p-3 border rounded-md"/>
+              <input type="text" name="category" value={editingRental.category || ''} onChange={handleInputChange} placeholder="Category (e.g., Camera, Lighting)" className="w-full p-3 border rounded-md"/>
+              <textarea name="description" value={editingRental.description || ''} onChange={handleInputChange} placeholder="Description" className="w-full p-3 border rounded-md h-24"/>
+              <input type="number" step="0.01" name="price" value={editingRental.price} onChange={handleInputChange} placeholder="Price per day" className="w-full p-3 border rounded-md"/>
+              <div className="flex items-center gap-2">
+                 <input type="checkbox" name="is_available" checked={editingRental.is_available} onChange={handleInputChange} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"/>
+                 <label htmlFor="is_available" className="text-sm font-medium text-gray-700">Available for rent</label>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Equipment Image</label>
+                <input type="file" onChange={handleFileChange} accept="image/*" className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mt-1"/>
+              </div>
+            </div>
+            <div className="flex justify-end gap-4 mt-8">
+              <button onClick={closeModal} className="px-4 py-2 rounded-md hover:bg-gray-100">Cancel</button>
+              <button onClick={handleSave} className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700">Save</button>
+            </div>
           </div>
-        )}
-      </Card>
-    </div>
+        </div>
+      )}
+    </Card>
   );
 };
 

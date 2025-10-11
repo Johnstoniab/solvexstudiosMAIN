@@ -24,7 +24,7 @@ const ServicesTab: React.FC = () => {
       .order('order', { ascending: true });
     
     if (error) {
-      addToast({ type: 'error', title: 'Error', message: 'Could not fetch services.' });
+      addToast({ type: 'error', title: 'Could not fetch services.', message: 'Please ensure you are logged in and have admin rights.' });
     } else {
       setServices(data as Service[]);
     }

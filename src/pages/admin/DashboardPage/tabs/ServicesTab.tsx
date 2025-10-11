@@ -45,50 +45,132 @@ const ServicesTab: React.FC = () => {
 
   useEffect(() => {
     fetchAllData();
+    const channel = onServicesChange((payload) => {
+      console.log('Realtime event received!', payload);
+      fetchAllData();
+    });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [fetchAllData]);
 
-  const handleAddNew = () => setEditingService(emptyService);
-  const handleEdit = (service: Service) => setEditingService(service);
-  const handleCancel = () => setEditingService(null);
+  const handleAddNew = () => {
+    setEditingService(emptyService);
+    setIsFormOpen(true);
+  };
+
+  const handleEdit = (service: Service) => {
+    setEditingService(service);
+    setIsFormOpen(true);
+  };
+  
+  const handleCancel = () => {
+    setIsFormOpen(false);
+    setEditingService(null);
+  }
 
   const handleSave = async () => {
     if (!editingService) return;
     const isUpdating = 'id' in editingService && editingService.id;
 
     setIsFormOpen(false);
-    setEditingService(null);
 
     if (isUpdating) {
       const { error } = await updateService(editingService.id!, editingService);
       if (error) addToast({ type: 'error', title: 'Update Failed', message: error.message });
       else addToast({ type: 'success', title: 'Service Updated!' });
     } else {
-      await createService(editingService as any);
+      const { error } = await createService(editingService as any);
+       if (error) addToast({ type: 'error', title: 'Creation Failed', message: error.message });
+      else addToast({ type: 'success', title: 'Service Created!' });
     }
-    await fetchAllData();
+    setEditingService(null);
   };
   
   const handleDelete = async (service: Service) => {
-    // ...
+    if (!window.confirm("Are you sure? This will move the service to the trash.")) return;
+    const { error } = await softDeleteService(service.id);
+    if (error) addToast({ type: 'error', title: 'Delete Failed', message: error.message });
+    else addToast({ type: 'success', title: 'Service moved to trash' });
   }
 
   const handleRestore = async (service: Service) => {
-    // ...
+    const { error } = await restoreService(service.id);
+    if (error) addToast({ type: 'error', title: 'Restore Failed', message: error.message });
+    else addToast({ type: 'success', title: 'Service Restored!' });
   }
   
   const handlePublish = async (service: Service) => {
-    // ...
+    const newStatus = service.status === 'published' ? 'draft' : 'published';
+    const { error } = await updateService(service.id, { status: newStatus });
+    if (error) addToast({ type: 'error', title: 'Status update failed' });
+    else addToast({ type: 'success', title: `Service status set to ${newStatus}` });
   };
 
   const handleSeedDatabase = async () => {
-    // ...
+    if (!window.confirm("This will add the original services to your database. Are you sure?")) return;
+    const seedData = businessServicesData.map(s => ({
+      title: s.title, summary: s.summary, image_url: s.imageUrl, title_color: s.titleColor,
+      description: s.details.description, sub_services: s.details.subServices, outcome: s.details.outcome,
+      status: 'draft' as 'draft' | 'published',
+    }));
+    const { error } = await supabase.from('services').insert(seedData);
+    if (error) addToast({ type: 'error', title: 'Seeding failed', message: error.message });
+    else addToast({ type: 'success', title: 'Database seeded!' });
   };
 
   if (isFormOpen && editingService) {
     return (
        <Card title={editingService.id ? "Edit Service" : "Add New Service"}>
-        {/* ... The form JSX ... */}
-       </Card>
+        <div className="space-y-4 text-sm">
+          <div><label className="font-medium">Title</label><input type="text" value={editingService.title || ''} onChange={e => setEditingService({...editingService, title: e.target.value})} className="mt-1 w-full p-2 border rounded-md" /></div>
+          <div><label className="font-medium">Card Text (Summary)</label><textarea rows={3} value={editingService.summary || ''} onChange={e => setEditingService({...editingService, summary: e.target.value})} className="mt-1 w-full p-2 border rounded-md" /></div>
+          
+          <div className="pt-4 border-t">
+            <h4 className="font-semibold text-base mb-2">Image Settings</h4>
+            <div><label className="font-medium">Image URL</label><input type="text" value={editingService.image_url || ''} onChange={e => setEditingService({...editingService, image_url: e.target.value})} className="mt-1 w-full p-2 border rounded-md" /></div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+              <div>
+                <label className="font-medium">Image Fit</label>
+                <select value={editingService.image_fit || 'cover'} onChange={e => setEditingService({...editingService, image_fit: e.target.value})} className="mt-1 w-full p-2 border rounded-md">
+                  <option value="cover">Cover</option>
+                  <option value="contain">Contain</option>
+                </select>
+              </div>
+              <div>
+                <label className="font-medium">Image Position</label>
+                <select value={editingService.image_position || 'center'} onChange={e => setEditingService({...editingService, image_position: e.target.value})} className="mt-1 w-full p-2 border rounded-md">
+                  <option value="center">Center</option>
+                  <option value="top">Top</option>
+                  <option value="bottom">Bottom</option>
+                  <option value="left">Left</option>
+                  <option value="right">Right</option>
+                </select>
+              </div>
+              <div>
+                <label className="font-medium">Image Rotation</label>
+                <select value={editingService.image_rotation || 0} onChange={e => setEditingService({...editingService, image_rotation: parseInt(e.target.value)})} className="mt-1 w-full p-2 border rounded-md">
+                  <option value="0">No rotation</option>
+                  <option value="90">90 degrees</option>
+                  <option value="180">180 degrees</option>
+                  <option value="270">270 degrees</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t"><h4 className="font-semibold text-base mb-2">Details Page Content</h4>
+             <div><label className="font-medium">Main Text (Description)</label><textarea rows={6} value={editingService.description || ''} onChange={e => setEditingService({...editingService, description: e.target.value})} className="mt-1 w-full p-2 border rounded-md" /></div>
+             <div><label className="font-medium">Sub-Services (One per line)</label><textarea rows={5} value={(editingService.sub_services || []).join('\n')} onChange={e => setEditingService({...editingService, sub_services: e.target.value.split('\n')})} className="mt-1 w-full p-2 border rounded-md" /></div>
+             <div><label className="font-medium">Outcome</label><input type="text" value={editingService.outcome || ''} onChange={e => setEditingService({...editingService, outcome: e.target.value})} className="mt-1 w-full p-2 border rounded-md" /></div>
+          </div>
+        </div>
+        <div className="flex justify-end gap-4 mt-6">
+          <button onClick={handleCancel} className="px-4 py-2 font-semibold text-gray-700 rounded-lg hover:bg-gray-100">Cancel</button>
+          <button onClick={handleSave} className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700">Save</button>
+        </div>
+      </Card>
     );
   }
 

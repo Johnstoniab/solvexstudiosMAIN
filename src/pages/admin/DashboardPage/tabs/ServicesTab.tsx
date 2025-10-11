@@ -1,61 +1,76 @@
-import React, { useState } from 'react';
-import Card from '../components/Card';
-import { Info, Plus, Edit, Trash2, Send } from 'lucide-react';
+// FILE: src/pages/ServicesPage.tsx
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase/client';
+import type { Database } from '../lib/supabase/database.types';
 
-// --- We are now importing your services directly from your project files ---
-import { businessServicesData } from '../../../../data/business/services.data';
+type Service = Database['public']['Tables']['services']['Row'];
 
-const ServicesTab: React.FC = () => {
-  // --- The admin panel now uses the manually imported data ---
-  const [services] = useState(businessServicesData.map(s => ({
-    id: s.title,
-    title: s.title,
-    summary: s.summary,
-    imageUrl: s.imageUrl,
-    status: 'manual', // A simple status to show it's not live
-  })));
+const ServicesPage: React.FC = () => {
+  const [services, setServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('services')
+        .select('*')
+        .eq('status', 'published')
+        .order('order', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching services:', error);
+      } else {
+        setServices(data);
+      }
+      setLoading(false);
+    };
+
+    fetchServices();
+
+    const channel = supabase
+      .channel('public:services')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, () => {
+        fetchServices();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   return (
-    <Card title="Manage Services (Manual Mode)" right={
-      <button className="flex items-center gap-2 bg-gray-400 text-white px-4 py-2 rounded-lg text-sm font-semibold cursor-not-allowed">
-        <Plus size={16} /> Add New (Disabled)
-      </button>
-    }>
-      <div className="mb-6 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700">
-        <div className="flex">
-          <div className="py-1"><Info className="h-5 w-5 mr-3" /></div>
-          <div>
-            <p className="font-bold">Manual Mode Enabled</p>
-            <p className="text-sm">This tab is showing services from the local project files, not from the live database. All editing, publishing, and deleting functions are temporarily disabled.</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        {services.map(service => (
-          <div key={service.id} className="flex items-center justify-between p-4 rounded-lg bg-gray-50 border">
-            <div className="flex items-center gap-4">
-              <img src={service.imageUrl || 'https://via.placeholder.com/150'} alt={service.title} className="w-16 h-16 object-cover rounded-md bg-gray-200" />
-              <div>
-                <div className="flex items-center gap-3">
-                  <h4 className="font-bold text-gray-800">{service.title}</h4>
-                  <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-200 text-gray-800">
-                    Manual
-                  </span>
+    <div className="container mx-auto px-6 py-16">
+      <h1 className="text-4xl font-extrabold text-center mb-12">Our Services</h1>
+      {loading ? (
+        <p className="text-center">Loading live services...</p>
+      ) : services.length === 0 ? (
+        <p className="text-center text-gray-500">No services are available at the moment. Please check back later!</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {services.map((service) => (
+            <div key={service.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
+              {service.image_path && (
+                <img
+                  src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/service_images/${service.image_path}`}
+                  alt={service.title}
+                  className="w-full h-56 object-cover"
+                />
+              )}
+              <div className="p-6">
+                <h2 className="text-2xl font-bold mb-2">{service.title}</h2>
+                <p className="text-gray-600 mb-4">{service.description}</p>
+                <div className="text-right text-xl font-semibold">
+                  ${service.price.toFixed(2)}
                 </div>
-                <p className="text-xs text-gray-600 max-w-md mt-1">{service.summary}</p>
               </div>
             </div>
-            <div className="flex gap-2">
-                <button className="p-2 rounded-md text-gray-400 bg-gray-200 cursor-not-allowed" disabled><Send size={16} /></button>
-                <button className="p-2 text-gray-400 bg-gray-200 cursor-not-allowed" disabled><Edit size={16} /></button>
-                <button className="p-2 text-gray-400 bg-gray-200 cursor-not-allowed" disabled><Trash2 size={16} /></button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </Card>
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 
-export default ServicesTab;
+export default ServicesPage;

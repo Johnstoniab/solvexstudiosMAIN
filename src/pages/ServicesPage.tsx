@@ -30,7 +30,7 @@ const ServicesPage: React.FC = () => {
 
     const channel = supabase
       .channel('public:services')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, (payload) => {
         fetchServices();
       })
       .subscribe();
@@ -51,9 +51,9 @@ const ServicesPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {services.map((service) => (
             <div key={service.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
-              {service.image_path && (
+              {service.image_url && (
                 <img
-                  src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/service_images/${service.image_path}`}
+                  src={service.image_url}
                   alt={service.title}
                   className="w-full h-56 object-cover"
                 />
@@ -61,9 +61,9 @@ const ServicesPage: React.FC = () => {
               <div className="p-6">
                 <h2 className="text-2xl font-bold mb-2">{service.title}</h2>
                 <p className="text-gray-600 mb-4">{service.description}</p>
-                <div className="text-right text-xl font-semibold">
-                  ${service.price.toFixed(2)}
-                </div>
+                {service.outcome && (
+                  <p className="text-gray-500 mt-2">{service.outcome}</p>
+                )}
               </div>
             </div>
           ))}

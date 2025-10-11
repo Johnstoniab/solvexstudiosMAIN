@@ -1,3 +1,4 @@
+// FILE: src/lib/supabase/database.types.ts
 export type Json =
   | string
   | number
@@ -9,61 +10,56 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      admins: {
+        Row: { id: string };
+        Insert: { id: string };
+        Update: { id?: string };
+      };
       services: {
         Row: {
-          id: string
-          title: string
-          summary: string | null
-          image_url: string | null
-          title_color: string | null
-          description: string | null
-          sub_services: string[] | null
-          outcome: string | null
-          status: string | null
-          is_deleted: boolean | null
-          deleted_at: string | null
-          image_fit: string | null
-          image_position: string | null
-          created_at: string
-          updated_at: string
-        }
+          id: number;
+          title: string;
+          slug: string;
+          description: string | null;
+          image_path: string | null;
+          price: number;
+          status: "draft" | "published";
+          order: number;
+          created_by: string | null;
+          inserted_at: string;
+          updated_at: string;
+        };
         Insert: {
-          id?: string
-          title: string
-          summary?: string | null
-          image_url?: string | null
-          title_color?: string | null
-          description?: string | null
-          sub_services?: string[] | null
-          outcome?: string | null
-          status?: string | null
-          is_deleted?: boolean | null
-          deleted_at?: string | null
-          image_fit?: string | null
-          image_position?: string | null
-          created_at?: string
-          updated_at?: string
-        }
+          id?: number;
+          title: string;
+          slug: string;
+          description?: string | null;
+          image_path?: string | null;
+          price?: number;
+          status?: "draft" | "published";
+          order?: number;
+          created_by?: string | null;
+          inserted_at?: string;
+          updated_at?: string;
+        };
         Update: {
-          id?: string
-          title?: string
-          summary?: string | null
-          image_url?: string | null
-          title_color?: string | null
-          description?: string | null
-          sub_services?: string[] | null
-          outcome?: string | null
-          status?: string | null
-          is_deleted?: boolean | null
-          deleted_at?: string | null
-          image_fit?: string | null
-          image_position?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      // ... other tables remain the same
-    }
-    // ... rest of the file remains the same
-  }
+          id?: number;
+          title?: string;
+          slug?: string;
+          description?: string | null;
+          image_path?: string | null;
+          price?: number;
+          status?: "draft" | "published";
+          order?: number;
+          created_by?: string | null;
+          inserted_at?: string;
+          updated_at?: string;
+        };
+      };
+    };
+    Views: { [_ in never]: never };
+    Functions: { [_ in never]: never };
+    Enums: { [_ in never]: never };
+    CompositeTypes: { [_ in never]: never };
+  };
 }

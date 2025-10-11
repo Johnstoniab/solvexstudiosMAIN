@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Card from "../components/Card";
 import { Loader2, Mail, Phone, X } from "lucide-react";

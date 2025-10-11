@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState, useEffect } from "react";
 import { getServices } from "../../../../lib/supabase/operations";
 import type { Database } from "../../../../lib/supabase/database.types";

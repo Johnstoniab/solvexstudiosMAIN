@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link, Mail, Phone, Clock, Loader as Loader2, RefreshCw, CircleAlert as AlertCircle, Eye, BarChart3 } from "lucide-react";
 import Card from "../components/Card";

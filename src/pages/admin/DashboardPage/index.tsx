@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import * as SB from "./components/SideBar";
-const Sidebar: React.FC<any> = (SB as any).default ?? (SB as any).Sidebar ?? (SB as any).SideBar;
+import SideBar from "./components/SideBar";
 
 import Topbar from "./components/Topbar";
 

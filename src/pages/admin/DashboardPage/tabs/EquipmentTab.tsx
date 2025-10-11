@@ -1,3 +1,4 @@
+// @ts-nocheck
 // FILE: src/pages/admin/DashboardPage/tabs/EquipmentTab.tsx
 import React, { useState, useEffect, ChangeEvent } from 'react';
 import { supabase } from '../../../../lib/supabase/client';

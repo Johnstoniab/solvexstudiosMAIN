@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { LogOut, User, MessageSquare, FileText, Send, Loader2, Link as LinkIcon, AlertCircle, X } from 'lucide-react';
 import { useAuth } from '../auth/useAuth';

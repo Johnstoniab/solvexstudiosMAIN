@@ -8,7 +8,7 @@ export type Service = Database['public']['Tables']['services']['Row'];
 export type ServiceInsert = Database['public']['Tables']['services']['Insert'];
 export type ServiceUpdate = Database['public']['Tables']['services']['Update'];
 
-// --- NEW REAL-TIME SERVICE OPERATIONS ---
+// --- REAL-TIME SERVICE OPERATIONS ---
 
 // Get all active (not deleted) services
 export const getServices = async () => supabase.from('services').select('*').eq('is_deleted', false);
@@ -39,7 +39,7 @@ export const restoreService = async (id: string) => {
 };
 
 // Listen for any changes in the services table
-export const onServicesChange = (callback: () => void) => {
+export const onServicesChange = (callback: (payload: any) => void) => {
   return supabase
     .channel('public:services')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, callback)
@@ -48,10 +48,6 @@ export const onServicesChange = (callback: () => void) => {
 
 
 // --- EXISTING OPERATIONS (Unchanged) ---
-
-// FRONTEND-ONLY MODE:
-// This file returns rental equipment from local data only.
-// No Supabase calls, no env checks.
 
 import { rentalEquipmentData } from "../../data/business/rentals.data";
 

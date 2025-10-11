@@ -1,95 +1,40 @@
-// FILE: src/lib/supabase/database.types.ts
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+// This file is very long, so I will only show the change.
+// Find the `Tables` section and add the `services` table definition inside it.
 
-export interface Database {
-  public: {
-    Tables: {
-      admins: {
-        Row: { id: string };
-        Insert: { id: string };
-        Update: { id?: string };
-      };
+// ... inside `export interface Database { public: { Tables: { ...`
       services: {
         Row: {
-          id: number;
-          title: string;
-          slug: string;
-          description: string | null;
-          image_path: string | null;
-          price: number;
-          status: "draft" | "published";
-          order: number;
-          created_by: string | null;
-          inserted_at: string;
-          updated_at: string;
-        };
+          id: string
+          title: string
+          summary: string | null
+          image_url: string | null
+          title_color: string | null
+          description: string | null
+          sub_services: string[] | null
+          outcome: string | null
+          sort_order: number | null
+        }
         Insert: {
-          id?: number;
-          title: string;
-          slug: string;
-          description?: string | null;
-          image_path?: string | null;
-          price?: number;
-          status?: "draft" | "published";
-          order?: number;
-          created_by?: string | null;
-        };
+          id?: string
+          title: string
+          summary?: string | null
+          image_url?: string | null
+          title_color?: string | null
+          description?: string | null
+          sub_services?: string[] | null
+          outcome?: string | null
+          sort_order?: number | null
+        }
         Update: {
-          id?: number;
-          title?: string;
-          slug?: string;
-          description?: string | null;
-          image_path?: string | null;
-          price?: number;
-          status?: "draft" | "published";
-          order?: number;
-          created_by?: string | null;
-        };
-      };
-      rentals: {
-        Row: {
-          id: number;
-          name: string;
-          category: string;
-          description: string | null;
-          image_path: string | null;
-          price: number;
-          is_available: boolean;
-          order: number;
-          inserted_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: number;
-          name: string;
-          category: string;
-          description?: string | null;
-          image_path?: string | null;
-          price?: number;
-          is_available?: boolean;
-          order?: number;
-        };
-        Update: {
-          id?: number;
-          name?: string;
-          category?: string;
-          description?: string | null;
-          image_path?: string | null;
-          price?: number;
-          is_available?: boolean;
-          order?: number;
-        };
-      };
-    }
-    Views: { [_ in never]: never };
-    Functions: { [_ in never]: never };
-    Enums: { [_ in never]: never };
-    CompositeTypes: { [_ in never]: never };
-  };
-}
+          id?: string
+          title?: string
+          summary?: string | null
+          image_url?: string | null
+          title_color?: string | null
+          description?: string | null
+          sub_services?: string[] | null
+          outcome?: string | null
+          sort_order?: number | null
+        }
+      }
+// ... rest of the file

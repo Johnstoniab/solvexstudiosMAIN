@@ -30,7 +30,7 @@ const ServicesPage: React.FC = () => {
 
     const channel = supabase
       .channel('public:services')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, (payload) => {
         fetchServices();
       })
       .subscribe();

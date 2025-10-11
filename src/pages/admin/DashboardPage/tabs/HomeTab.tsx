@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from 'react';
 import { Users, SquareUser as UserSquare2, FileText, Package, LucideProps } from 'lucide-react';
 import Card from '../components/Card';

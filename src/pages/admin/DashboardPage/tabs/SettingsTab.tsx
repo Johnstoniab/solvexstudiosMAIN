@@ -1,5 +1,4 @@
 // @ts-nocheck
-// @ts-nocheck
 import React from "react";
 import { useState } from "react";
 import { RefreshCw, Database, CircleCheck as CheckCircle, CircleAlert as AlertCircle } from "lucide-react";

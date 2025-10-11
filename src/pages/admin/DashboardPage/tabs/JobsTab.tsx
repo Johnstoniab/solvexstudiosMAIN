@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import Card from '../components/Card';
 import { PlusCircle, Edit2, Trash2, Loader2 } from 'lucide-react';

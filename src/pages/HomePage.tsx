@@ -10,8 +10,11 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { businessServicesData } from "../data/business/services.data";
-import { rentalEquipmentData } from "../data/business/rentals.data";
-import { BusinessService, RentalEquipment } from "../types/business.types";
+import { getRentalEquipment } from "../lib/supabase/operations";
+import { BusinessService } from "../types/business.types";
+import type { Database } from "../lib/supabase/database.types";
+
+type RentalEquipment = Database['public']['Tables']['rental_equipment']['Row'];
 
 const useIntersectionObserver = (ref: React.RefObject<Element>) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -78,7 +81,7 @@ const HomePage = () => {
   const homeServicesRef = useRef(null);
   const rentalsRef = useRef(null);
   const navigate = useNavigate();
-  const [rentalEquipmentList, setRentalEquipmentList] = useState<RentalEquipment[]>([]);
+  const [rentalEquipmentData, setRentalEquipmentData] = useState<RentalEquipment[]>([]);
 
   // Typewriter effect for main headline
   const headlineText =
@@ -105,7 +108,11 @@ const HomePage = () => {
   const [isRentalsVisible] = useIntersectionObserver(rentalsRef, {});
 
   useEffect(() => {
-    setRentalEquipmentList(rentalEquipmentData);
+    const fetchRentals = async () => {
+      const { data } = await getRentalEquipment();
+      if (data) setRentalEquipmentData(data.slice(0, 6));
+    };
+    fetchRentals();
   }, []);
 
   const getAnimationClass = (index: number) => {
@@ -134,7 +141,7 @@ const HomePage = () => {
     const idx = Math.round(el.scrollLeft / (cardWidth + gap));
     const clamped = Math.max(
       0,
-      Math.min(idx, rentalEquipmentList.length - 1)
+      Math.min(idx, rentalEquipmentData.slice(0, 6).length - 1)
     );
     setActiveRentalIndex(clamped);
   }, []);
@@ -421,7 +428,7 @@ const HomePage = () => {
                 WebkitOverflowScrolling: "touch" as any,
               }}
             >
-              {rentalEquipmentList.map((rental) => (
+              {rentalEquipmentData.slice(0, 6).map((rental) => (
                 <div key={rental.title} className="snap-center shrink-0 w-[82%]">
                   <Link
                     to="/rentals"
@@ -442,7 +449,7 @@ const HomePage = () => {
             </div>
 
             <div className="mt-4 flex justify-center gap-2">
-              {rentalEquipmentList.map((_, i) => (
+              {rentalEquipmentData.slice(0, 6).map((_, i) => (
                 <button
                   key={`rental-dot-${i}`}
                   aria-label={`Go to rental ${i + 1}`}
@@ -457,7 +464,7 @@ const HomePage = () => {
 
           {/* Desktop grid */}
           <div className="hidden md:grid grid-cols-3 lg:grid-cols-6 gap-4">
-            {rentalEquipmentList.map((rental, index) => (
+            {rentalEquipmentData.slice(0, 6).map((rental, index) => (
               <Link
                 to="/rentals"
                 key={rental.title}

@@ -1,6 +1,5 @@
 // Equipment rental product interface
 export interface RentalEquipment {
-  id: string;
   title: string;
   subtitle: string;
   category: string;
@@ -13,7 +12,6 @@ export interface RentalEquipment {
 // Final clean list (frontend only; no Supabase). 6 items exactly.
 export const rentalEquipmentData: RentalEquipment[] = [
   {
-    id: "canon-eos-5d-mark-ii",
     title: "Canon EOS 5D Mark II",
     subtitle: "Full Frame DSLR Camera",
     category: "Camera",
@@ -34,7 +32,6 @@ export const rentalEquipmentData: RentalEquipment[] = [
     videoUrl: "https://www.youtube.com/embed/y_34mvEZGx0"
   },
   {
-    id: "sony-fe-28-70mm",
     title: "Sony FE 28-70mm f/3.5-5.6",
     subtitle: "Lightweight, compact 35mm full-frame standard zoom lens",
     category: "Lens",
@@ -55,7 +52,6 @@ export const rentalEquipmentData: RentalEquipment[] = [
     videoUrl: "https://www.youtube.com/embed/x4ZZC5nqS0o"
   },
   {
-    id: "dji-mic-mini",
     title: "DJI MIC MINI",
     subtitle: "Carry Less, Capture More",
     category: "Audio",
@@ -74,7 +70,6 @@ export const rentalEquipmentData: RentalEquipment[] = [
     videoUrl: "https://www.youtube.com/embed/iBgZJJ-NBTs"
   },
   {
-    id: "dji-osmo-pocket-3",
     title: "DJI Osmo Pocket 3 Creator Combo",
     subtitle: "Compact and capable 4K pocket gimbal camera",
     category: "Camera",
@@ -93,7 +88,6 @@ export const rentalEquipmentData: RentalEquipment[] = [
     videoUrl: "https://www.youtube.com/embed/MZq_2OJ5kOo"
   },
   {
-    id: "sony-a7-iv",
     title: "Sony A7 IV",
     subtitle: "Mirrorless hybrid camera with image stabilization and lightning-fast autofocus",
     category: "Camera",
@@ -111,7 +105,6 @@ export const rentalEquipmentData: RentalEquipment[] = [
     videoUrl: "https://www.youtube.com/embed/bUgOEDqhZVY"
   },
   {
-    id: "dji-mini-4-pro",
     title: "DJI MINI 4 PRO FLY MORE COMBO (with RC 2 Controller)",
     subtitle: "Professional drone with 4K camera and obstacle sensing",
     category: "Drone",

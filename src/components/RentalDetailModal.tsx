@@ -74,7 +74,7 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({ isOpen, onClose, 
                 <div>
                   <div className="aspect-[16/10] overflow-hidden rounded-xl shadow-lg">
                     <iframe
-                      src={rental.videoUrl || ''}
+                      src={rental.video_url || ''}
                       title={`${rental.title} product video`}
                       frameBorder="0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

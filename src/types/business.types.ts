@@ -1,3 +1,5 @@
+import type { Database } from '../lib/supabase/database.types';
+
 // Core business service type
 export interface BusinessService {
   title: string;
@@ -11,17 +13,8 @@ export interface BusinessService {
   };
 }
 
-// Equipment rental type
-export interface RentalEquipment {
-  id: string;
-  title: string;
-  subtitle: string;
-  category: string;
-  price: number;
-  images: string[];
-  features: string[];
-  videoUrl: string;
-}
+// Equipment rental type - synced with Supabase
+export type RentalEquipment = Database['public']['Tables']['rentals']['Row'];
 
 // Team member type
 export interface TeamMember {

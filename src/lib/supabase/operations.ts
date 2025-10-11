@@ -1,12 +1,12 @@
-// This file is also long. Add these new functions anywhere inside it.
+import { supabase } from './client';
+import type { Database } from './database.types';
 
-// --- ADD THESE NEW SERVICE FUNCTIONS ---
 export const getServices = async () => {
   try {
     const { data, error } = await supabase
       .from('services')
       .select('*')
-      .order('sort_order', { ascending: true });
+      .order('created_at', { ascending: true });
     if (error) throw error;
     return { data, error: null };
   } catch (error) {
@@ -14,14 +14,14 @@ export const getServices = async () => {
   }
 };
 
-export const updateService = async (id: string, updates: Partial<Database['public']['Tables']['services']['Update']>) => {
+export const updateService = async (id: string, updates: Database['public']['Tables']['services']['Update']) => {
   try {
     const { data, error } = await supabase
       .from('services')
       .update(updates)
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
     if (error) throw error;
     return { data, error: null };
   } catch (error) {
@@ -50,4 +50,3 @@ export const uploadServiceImage = async (file: File) => {
         return { publicUrl: null, error };
     }
 };
-// --- END OF ADDITION ---

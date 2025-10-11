@@ -1,9 +1,11 @@
 // @ts-nocheck
 import React, { useState, useRef, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { ArrowLeft, CircleCheck as CheckCircle, Loader2 } from "lucide-react";
-import { getServices, Service } from "../lib/supabase/operations"; // Re-import from Supabase
+import { ArrowLeft, CircleCheck as CheckCircle } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+
+// --- We are now importing your services directly from your project files ---
+import { businessServicesData } from "../data/business/services.data";
 
 const useIntersectionObserver = (ref: React.RefObject<Element>) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -21,37 +23,26 @@ const useIntersectionObserver = (ref: React.RefObject<Element>) => {
 
 const ServicesPage = () => {
   const location = useLocation();
-  // --- RECONNECT TO SUPABASE ---
-  const [services, setServices] = useState<Service[]>([]);
-  const [loading, setLoading] = useState(true);
-  // --- END RECONNECT ---
+  // --- This page now uses the manually imported data ---
+  const [services] = useState(businessServicesData.map(s => ({
+    id: s.title,
+    title: s.title,
+    summary: s.summary,
+    image_url: s.imageUrl,
+    title_color: s.titleColor,
+    description: s.details.description,
+    sub_services: s.details.subServices,
+    outcome: s.details.outcome,
+    image_fit: 'cover',
+    image_position: 'center',
+    image_rotation: 0,
+  })));
   
-  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [selectedService, setSelectedService] = useState(null);
   const servicesRef = useRef<HTMLElement | null>(null);
   const backBtnRef = useRef<HTMLButtonElement | null>(null);
   const [isServicesVisible] = useIntersectionObserver(servicesRef);
   const prefersReducedMotion = useReducedMotion();
-
-  // --- RECONNECT FETCH LOGIC ---
-  useEffect(() => {
-    const fetchLiveServices = async () => {
-      setLoading(true);
-      const { data, error } = await getServices();
-      if (error) {
-        console.error("Failed to fetch services:", error);
-        // If there's an error, show an empty list
-        setServices([]);
-      } else {
-        // IMPORTANT: The public page should only show services that are "published"
-        const publishedServices = data?.filter(s => s.status === 'published') || [];
-        setServices(publishedServices);
-      }
-      setLoading(false);
-    };
-
-    fetchLiveServices();
-  }, []);
-  // --- END RECONNECT FETCH LOGIC ---
 
   useEffect(() => {
     const style = document.createElement('style');
@@ -104,34 +95,23 @@ const ServicesPage = () => {
                 </h2>
                 <p className="text-sm text-gray-600 mt-4 max-w-3xl mx-auto">We deliver growth solutions. Every offering is designed to solve a real problem businesses face in Ghana today.</p>
               </div>
-
-              {/* --- ROBUST LOADING & EMPTY STATES --- */}
-              {loading ? (
-                <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>
-              ) : services.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                    <p>No services are available at the moment.</p>
-                    <p className="mt-2">Please check back later!</p>
-                </div>
-              ) : (
-                <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" variants={listVariants}>
-                  {services.map((service) => (
-                    <motion.div key={service.id} className="group relative bg-white rounded-2xl shadow-md overflow-hidden ring-1 ring-gray-100 hover:ring-[#FF5722]/30 cursor-pointer" variants={itemVariants} whileHover="hover" layout transition={spring} onClick={() => setSelectedService(service)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setSelectedService(service); }} layoutId={`card-${service.id}`}>
-                      <span className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[#FF5722] to-transparent opacity-60" />
-                      <span className="pointer-events-none absolute inset-0 card-sheen" />
-                      <motion.div className="overflow-hidden" layoutId={`image-${service.id}`}>
-                        <motion.img className="w-full h-48" src={service.image_url || ''} alt={service.title} style={{ objectFit: (service.image_fit || 'cover') as any, objectPosition: service.image_position || 'center', transform: `rotate(${service.image_rotation || 0}deg)` }} loading="lazy" whileHover={prefersReducedMotion ? {} : { scale: 1.04 }} transition={{ duration: 0.35, ease: [0.22, 0.61, 0.36, 1] }} />
-                      </motion.div>
-                      <div className="absolute -top-5 right-4"><div className="rounded-full bg-white/90 backdrop-blur px-3 py-2 shadow ring-1 ring-gray-200 transition-transform duration-300 group-hover:-translate-y-1"><CheckCircle className="w-5 h-5 text-[#FF5722]" /></div></div>
-                      <div className="p-6">
-                        <h3 className={`text-xl font-bold ${service.title_color} underline-sweep`}>{service.title}</h3>
-                        <p className="text-gray-600 mt-2 text-base transition-colors duration-300 group-hover:text-gray-700">{service.summary}</p>
-                        <div className="mt-4 flex items-center gap-2 text-sm font-medium text-gray-700 opacity-0 translate-y-1 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0"><span className="h-1.5 w-1.5 rounded-full bg-[#FF5722] animate-pulse" /><span>Tap to view details</span></div>
-                      </div>
+              <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" variants={listVariants}>
+                {services.map((service) => (
+                  <motion.div key={service.id} className="group relative bg-white rounded-2xl shadow-md overflow-hidden ring-1 ring-gray-100 hover:ring-[#FF5722]/30 cursor-pointer" variants={itemVariants} whileHover="hover" layout transition={spring} onClick={() => setSelectedService(service)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setSelectedService(service); }} layoutId={`card-${service.id}`}>
+                    <span className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[#FF5722] to-transparent opacity-60" />
+                    <span className="pointer-events-none absolute inset-0 card-sheen" />
+                    <motion.div className="overflow-hidden" layoutId={`image-${service.id}`}>
+                      <motion.img className="w-full h-48" src={service.image_url || ''} alt={service.title} style={{ objectFit: 'cover', objectPosition: 'center' }} loading="lazy" whileHover={prefersReducedMotion ? {} : { scale: 1.04 }} transition={{ duration: 0.35, ease: [0.22, 0.61, 0.36, 1] }} />
                     </motion.div>
-                  ))}
-                </motion.div>
-              )}
+                    <div className="absolute -top-5 right-4"><div className="rounded-full bg-white/90 backdrop-blur px-3 py-2 shadow ring-1 ring-gray-200 transition-transform duration-300 group-hover:-translate-y-1"><CheckCircle className="w-5 h-5 text-[#FF5722]" /></div></div>
+                    <div className="p-6">
+                      <h3 className={`text-xl font-bold ${service.title_color} underline-sweep`}>{service.title}</h3>
+                      <p className="text-gray-600 mt-2 text-base transition-colors duration-300 group-hover:text-gray-700">{service.summary}</p>
+                      <div className="mt-4 flex items-center gap-2 text-sm font-medium text-gray-700 opacity-0 translate-y-1 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0"><span className="h-1.5 w-1.5 rounded-full bg-[#FF5722] animate-pulse" /><span>Tap to view details</span></div>
+                    </div>
+                  </motion.div>
+                ))}
+              </motion.div>
             </motion.div>
           ) : (
             <motion.div key="detail" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="motion-reduce:transition-none">
@@ -139,7 +119,7 @@ const ServicesPage = () => {
                 <button ref={backBtnRef} onClick={() => setSelectedService(null)} className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-black mb-8 transition-colors"><ArrowLeft className="w-4 h-4" />Back to all services</button>
                 <motion.div layoutId={`card-${selectedService.id}`} layout transition={spring} className="bg-white rounded-2xl shadow-md ring-1 ring-gray-100">
                   <motion.div layoutId={`image-${selectedService.id}`} className="overflow-hidden rounded-t-2xl">
-                    <img className="w-full h-56" src={selectedService.image_url || ''} alt={selectedService.title} style={{ objectFit: (selectedService.image_fit || 'cover') as any, objectPosition: selectedService.image_position || 'center', transform: `rotate(${selectedService.image_rotation || 0}deg)` }} />
+                    <img className="w-full h-56" src={selectedService.image_url || ''} alt={selectedService.title} style={{ objectFit: (selectedService.image_fit || 'cover') as any, objectPosition: selectedService.image_position || 'center' }} />
                   </motion.div>
                   <div className="p-6">
                     <h2 className="text-3xl md:text-4xl font-extrabold mb-4 tracking-tight">{selectedService.title}</h2>

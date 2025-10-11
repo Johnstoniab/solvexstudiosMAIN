@@ -2,56 +2,62 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { ArrowLeft, CircleCheck as CheckCircle, Loader2 } from "lucide-react";
-import { getServices, Service } from "../lib/supabase/operations"; // Re-import from Supabase
+import { getServices, Service } from "../lib/supabase/operations";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
 const useIntersectionObserver = (ref: React.RefObject<Element>) => {
   const [isVisible, setIsVisible] = useState(false);
+
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) setIsVisible(true);
-    }, { threshold: 0.1 });
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
     observer.observe(element);
-    return () => { if (element) observer.unobserve(element); };
+    return () => {
+      if (element) {
+        observer.unobserve(element);
+      }
+    };
   }, [ref]);
+
   return [isVisible];
 };
 
 const ServicesPage = () => {
   const location = useLocation();
-  // --- RECONNECT TO SUPABASE ---
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
-  // --- END RECONNECT ---
-  
   const [selectedService, setSelectedService] = useState<Service | null>(null);
+
   const servicesRef = useRef<HTMLElement | null>(null);
   const backBtnRef = useRef<HTMLButtonElement | null>(null);
+
   const [isServicesVisible] = useIntersectionObserver(servicesRef);
+  const [hasAnimatedOnce, setHasAnimatedOnce] = useState(false);
   const prefersReducedMotion = useReducedMotion();
 
-  // --- RECONNECT FETCH LOGIC ---
   useEffect(() => {
-    const fetchLiveServices = async () => {
+    const fetchServices = async () => {
       setLoading(true);
       const { data, error } = await getServices();
       if (error) {
-        console.error("Failed to fetch services:", error);
-        // If there's an error, show an empty list
-        setServices([]);
+        console.error("Failed to fetch services", error);
       } else {
-        // IMPORTANT: The public page should only show services that are "published"
-        const publishedServices = data?.filter(s => s.status === 'published') || [];
-        setServices(publishedServices);
+        setServices(data?.filter(s => s.status === 'published' && !s.is_deleted) || []);
       }
       setLoading(false);
     };
-
-    fetchLiveServices();
+    fetchServices();
   }, []);
-  // --- END RECONNECT FETCH LOGIC ---
 
   useEffect(() => {
     const style = document.createElement('style');
@@ -66,16 +72,24 @@ const ServicesPage = () => {
     document.head.appendChild(style);
     return () => {
       const styleElement = document.getElementById(style.id);
-      if (styleElement) document.head.removeChild(styleElement);
+      if (styleElement) {
+        document.head.removeChild(styleElement);
+      }
     };
   }, []);
 
   useEffect(() => {
     if (location.state?.selectedServiceTitle) {
-      const service = services.find(s => s.title === location.state.selectedServiceTitle);
+      const service = services.find(
+        (s) => s.title === location.state.selectedServiceTitle
+      );
       if (service) setSelectedService(service);
     }
   }, [location.state, services]);
+
+  useEffect(() => {
+    if (isServicesVisible && !hasAnimatedOnce) setHasAnimatedOnce(true);
+  }, [isServicesVisible, hasAnimatedOnce]);
 
   useEffect(() => {
     if (selectedService) {
@@ -85,36 +99,32 @@ const ServicesPage = () => {
   }, [selectedService]);
 
   const spring = { type: "spring", stiffness: 260, damping: 24, mass: 0.6 };
-  const listVariants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: prefersReducedMotion ? { duration: 0 } : { staggerChildren: 0.08 } } };
+  const listVariants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: prefersReducedMotion ? { duration: 0 } : { staggerChildren: 0.08, delayChildren: 0.06 } } };
   const itemVariants = {
-    hidden: prefersReducedMotion ? {} : { opacity: 0, y: 16 },
-    show: prefersReducedMotion ? {} : { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.2, 0.65, 0.3, 1] } },
+    hidden: prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 },
+    show: prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.2, 0.65, 0.3, 1] } },
     hover: prefersReducedMotion ? {} : { y: -4, transition: { type: "spring", stiffness: 420, damping: 24 } },
   };
 
   return (
-    <section ref={servicesRef as any} id="services" className="py-16 md:py-24 bg-white">
+    <section ref={servicesRef as any} id="services" className={`py-16 md:py-24 bg-white transition-opacity duration-1000 ${isServicesVisible ? "opacity-100" : "opacity-0"}`} aria-live="polite">
       <div className="container mx-auto px-6">
         <AnimatePresence mode="wait">
           {!selectedService ? (
             <motion.div key="list" initial="hidden" animate={isServicesVisible ? "show" : "hidden"} exit={{ opacity: 0, transition: { duration: 0.2 } }}>
               <div className="text-center mb-16">
-                <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight" style={{ fontFamily: '"Inter Tight","Manrope",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif' }}>
+                <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight leading-tight" style={{ fontFamily: '"Inter Tight","Manrope",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif' }}>
                   <span className="animated-gradient-text relative inline-block">Our Services<span className="heading-underline" /></span>
                 </h2>
+                <p className="text-lg text-gray-600 mt-4 max-w-3xl mx-auto"></p>
                 <p className="text-sm text-gray-600 mt-4 max-w-3xl mx-auto">We deliver growth solutions. Every offering is designed to solve a real problem businesses face in Ghana today.</p>
               </div>
-
-              {/* --- ROBUST LOADING & EMPTY STATES --- */}
               {loading ? (
                 <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>
               ) : services.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                    <p>No services are available at the moment.</p>
-                    <p className="mt-2">Please check back later!</p>
-                </div>
+                <div className="text-center py-12 text-gray-500"><p>No services are available at the moment. Please check back later!</p></div>
               ) : (
-                <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" variants={listVariants}>
+                <motion.div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 ${hasAnimatedOnce ? "reveal-done" : ""}`} variants={listVariants}>
                   {services.map((service) => (
                     <motion.div key={service.id} className="group relative bg-white rounded-2xl shadow-md overflow-hidden ring-1 ring-gray-100 hover:ring-[#FF5722]/30 cursor-pointer" variants={itemVariants} whileHover="hover" layout transition={spring} onClick={() => setSelectedService(service)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setSelectedService(service); }} layoutId={`card-${service.id}`}>
                       <span className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[#FF5722] to-transparent opacity-60" />
@@ -134,7 +144,7 @@ const ServicesPage = () => {
               )}
             </motion.div>
           ) : (
-            <motion.div key="detail" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="motion-reduce:transition-none">
+            <motion.div key="detail" initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { duration: 0.25 } }} exit={{ opacity: 0, transition: { duration: 0.2 } }} className="motion-reduce:transition-none">
               <div className="max-w-4xl mx-auto">
                 <button ref={backBtnRef} onClick={() => setSelectedService(null)} className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-black mb-8 transition-colors"><ArrowLeft className="w-4 h-4" />Back to all services</button>
                 <motion.div layoutId={`card-${selectedService.id}`} layout transition={spring} className="bg-white rounded-2xl shadow-md ring-1 ring-gray-100">

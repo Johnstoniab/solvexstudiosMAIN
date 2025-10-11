@@ -39,8 +39,6 @@ export interface Database {
           status?: "draft" | "published";
           order?: number;
           created_by?: string | null;
-          inserted_at?: string;
-          updated_at?: string;
         };
         Update: {
           id?: number;
@@ -52,11 +50,43 @@ export interface Database {
           status?: "draft" | "published";
           order?: number;
           created_by?: string | null;
-          inserted_at?: string;
-          updated_at?: string;
         };
       };
-    };
+      rentals: {
+        Row: {
+          id: number;
+          name: string;
+          category: string;
+          description: string | null;
+          image_path: string | null;
+          price: number;
+          is_available: boolean;
+          order: number;
+          inserted_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: number;
+          name: string;
+          category: string;
+          description?: string | null;
+          image_path?: string | null;
+          price?: number;
+          is_available?: boolean;
+          order?: number;
+        };
+        Update: {
+          id?: number;
+          name?: string;
+          category?: string;
+          description?: string | null;
+          image_path?: string | null;
+          price?: number;
+          is_available?: boolean;
+          order?: number;
+        };
+      };
+    }
     Views: { [_ in never]: never };
     Functions: { [_ in never]: never };
     Enums: { [_ in never]: never };

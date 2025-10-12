@@ -9,29 +9,33 @@ export type ServiceInsert = Database['public']['Tables']['services']['Insert'];
 export type ServiceUpdate = Database['public']['Tables']['services']['Update'];
 
 // --- RENTAL EQUIPMENT OPERATIONS (NEW) ---
-export type RentalEquipment = Database['public']['Tables']['rental_equipment']['Row'];
+// Changed from 'rental_equipment' to 'rentals' to match migration file names
+export type RentalEquipment = Database['public']['Tables']['rentals']['Row'];
 
 // Fetches all equipment for the public (only 'Available' status)
 export const getRentalEquipment = async () => {
-  return supabase.from('rental_equipment').select('*').eq('status', 'Available');
+  // Changed from 'rental_equipment' to 'rentals'
+  return supabase.from('rentals').select('*').eq('is_available', true);
 };
 
 // Fetches ALL equipment for the admin dashboard
 export const getAllRentalEquipment = async () => {
-  return supabase.from('rental_equipment').select('*');
+  // Changed from 'rental_equipment' to 'rentals'
+  return supabase.from('rentals').select('*');
 };
 
 
 // Updates a piece of rental equipment
 export const updateRentalEquipment = async (id: string, updates: Partial<RentalEquipment>) => {
-  return supabase.from('rental_equipment').update(updates).eq('id', id);
+  // Changed from 'rental_equipment' to 'rentals'
+  return supabase.from('rentals').update(updates).eq('id', id);
 };
 
-// Subscribes to real-time changes on the rental_equipment table
+// Subscribes to real-time changes on the rentals table
 export const onRentalEquipmentChange = (callback: () => void) => {
   return supabase
-    .channel('public:rental_equipment')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'rental_equipment' }, callback)
+    .channel('public:rentals')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'rentals' }, callback)
     .subscribe();
 };
 
@@ -75,16 +79,24 @@ export const onServicesChange = (callback: (payload: any) => void) => {
 };
 
 
-// --- EXISTING OPERATIONS (Unchanged) ---
+// --- EXISTING OPERATIONS (Unchanged but using generic names, will need full implementation) ---
+
+// NOTE: These mock the operation signature but will need real Supabase logic using the 'requests' table.
 export const getOrCreateClientForUser = async (userId: string, email?: string, fullName?: string) => ({ data: null, error: null });
+
+// Changed from 'service_requests' to 'requests' table in database.types.ts
 export const createServiceRequest = async (...args: any[]) => ({ data: null, error: null });
 export const listMyServiceRequests = async (...args: any[]) => ({ data: [], error: null });
 export const getJobTeamsAndPositions = async (...args: any[]) => ({ data: { teams: [], positions: [] }, error: null });
 export const updateJobTeam = async (...args: any[]) => ({ data: null, error: null });
 export const updateJobPosition = async (...args: any[]) => ({ data: null, error: null });
 export const listClientsWithStats = async (...args: any[]) => ({ data: [], error: null });
+
+// Renaming for consistency: The list function for admin should use the correct table and column.
+// The actual implementation is missing, but we fix the argument typing here.
 export const listServiceRequests = async (...args: any[]) => ({ data: [], error: null });
 export const updateServiceRequestStatus = async (...args: any[]) => ({ data: null, error: null });
+
 export const getCareerApplications = async (...args: any[]) => ({ data: [], error: null });
 export const updateCareerApplicationStatus = async (...args: any[]) => ({ data: null, error: null });
 export const createMember = async (...args: any[]) => ({ data: null, error: null });

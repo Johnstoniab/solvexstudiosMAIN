@@ -104,7 +104,7 @@ const ServicesTab: React.FC = () => {
   const handlePublish = async (service: Service) => {
     const newStatus = service.status === 'published' ? 'draft' : 'published';
     const { error } = await updateService(service.id, { status: newStatus });
-    if (error) addToast({ type: 'error', title: 'Status update failed' });
+    if (error) addToast({ type: 'error', title: 'Status update failed', message: error.message });
     else addToast({ type: 'success', title: `Service status set to ${newStatus}` });
   };
 
@@ -247,4 +247,4 @@ const ServicesTab: React.FC = () => {
   );
 };
 
-export default ServicesTab; 
+export default ServicesTab;

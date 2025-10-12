@@ -6,41 +6,9 @@ import type { Database } from './database.types';
 
 export type Service = Database['public']['Tables']['services']['Row'];
 export type ServiceInsert = Database['public']['Tables']['services']['Insert'];
-export type ServiceUpdate = Database['public']['Tables']['services']['Update'];
+export type ServiceUpdate = Database['public'] ['Tables']['services']['Update'];
 
-// --- RENTAL EQUIPMENT OPERATIONS (NEW) ---
-// Changed from 'rental_equipment' to 'rentals' to match migration file names
-export type RentalEquipment = Database['public']['Tables']['rentals']['Row'];
-
-// Fetches all equipment for the public (only 'Available' status)
-export const getRentalEquipment = async () => {
-  // Changed from 'rental_equipment' to 'rentals'
-  return supabase.from('rentals').select('*').eq('is_available', true);
-};
-
-// Fetches ALL equipment for the admin dashboard
-export const getAllRentalEquipment = async () => {
-  // Changed from 'rental_equipment' to 'rentals'
-  return supabase.from('rentals').select('*');
-};
-
-
-// Updates a piece of rental equipment
-export const updateRentalEquipment = async (id: string, updates: Partial<RentalEquipment>) => {
-  // Changed from 'rental_equipment' to 'rentals'
-  return supabase.from('rentals').update(updates).eq('id', id);
-};
-
-// Subscribes to real-time changes on the rentals table
-export const onRentalEquipmentChange = (callback: () => void) => {
-  return supabase
-    .channel('public:rentals')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'rentals' }, callback)
-    .subscribe();
-};
-
-
-// --- REAL-TIME SERVICE OPERATIONS ---
+// --- NEW REAL-TIME SERVICE OPERATIONS ---
 
 // Get all active (not deleted) services
 export const getServices = async () => supabase.from('services').select('*').eq('is_deleted', false);
@@ -71,7 +39,7 @@ export const restoreService = async (id: string) => {
 };
 
 // Listen for any changes in the services table
-export const onServicesChange = (callback: (payload: any) => void) => {
+export const onServicesChange = (callback: () => void) => {
   return supabase
     .channel('public:services')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, callback)
@@ -79,24 +47,42 @@ export const onServicesChange = (callback: (payload: any) => void) => {
 };
 
 
-// --- EXISTING OPERATIONS (Unchanged but using generic names, will need full implementation) ---
+// --- EXISTING OPERATIONS (Unchanged) ---
 
-// NOTE: These mock the operation signature but will need real Supabase logic using the 'requests' table.
+// FRONTEND-ONLY MODE:
+// This file returns rental equipment from local data only.
+// No Supabase calls, no env checks.
+
+import { rentalEquipmentData } from "../../data/business/rentals.data";
+
+const mapLocalToRow = (item: any) => ({
+  title: item.title,
+  subtitle: item.subtitle,
+  category: item.category ?? null,
+  price: typeof item.price === "number" ? item.price : null,
+  video_url: item.videoUrl ?? null,
+  features: item.features ?? [],
+  images: item.images ?? [],
+  status: item.status ?? "Available",
+  created_at: null,
+  id: null,
+});
+
+export const getRentalEquipment = async () => {
+  const rows = (rentalEquipmentData || []).map(mapLocalToRow);
+  return { data: rows, error: null };
+};
+
 export const getOrCreateClientForUser = async (userId: string, email?: string, fullName?: string) => ({ data: null, error: null });
-
-// Changed from 'service_requests' to 'requests' table in database.types.ts
 export const createServiceRequest = async (...args: any[]) => ({ data: null, error: null });
 export const listMyServiceRequests = async (...args: any[]) => ({ data: [], error: null });
+export const updateRentalEquipment = async (...args: any[]) => ({ data: null, error: null });
 export const getJobTeamsAndPositions = async (...args: any[]) => ({ data: { teams: [], positions: [] }, error: null });
 export const updateJobTeam = async (...args: any[]) => ({ data: null, error: null });
 export const updateJobPosition = async (...args: any[]) => ({ data: null, error: null });
 export const listClientsWithStats = async (...args: any[]) => ({ data: [], error: null });
-
-// Renaming for consistency: The list function for admin should use the correct table and column.
-// The actual implementation is missing, but we fix the argument typing here.
 export const listServiceRequests = async (...args: any[]) => ({ data: [], error: null });
 export const updateServiceRequestStatus = async (...args: any[]) => ({ data: null, error: null });
-
 export const getCareerApplications = async (...args: any[]) => ({ data: [], error: null });
 export const updateCareerApplicationStatus = async (...args: any[]) => ({ data: null, error: null });
 export const createMember = async (...args: any[]) => ({ data: null, error: null });

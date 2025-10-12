@@ -7,16 +7,10 @@ import type { Database } from '../../lib/supabase/database.types';
 import Select from 'react-select';
 
 // Define complex types locally for the component
-type ClientRow = Database['public']['Tables']['profiles']['Row'] & {
-  tier?: 'Regular' | 'VIP' | 'Enterprise';
-  company?: string;
-  // Note: The structure for the client here is a mix of profiles and clients tables.
-  // This is a common pattern, but remember the `profiles` table is the base.
-};
-// CORRECTED: ServiceRequest and ServiceRequestInsert now point to the correct 'requests' table.
-type ServiceRequest = Database['public']['Tables']['requests']['Row'];
+type ClientRow = Database['public']['Tables']['clients']['Row'];
+type ServiceRequest = Database['public']['Tables']['service_requests']['Row'];
 type ServiceRequestStatus = ServiceRequest['status'];
-type ServiceRequestInsert = Database['public']['Tables']['requests']['Insert'];
+type ServiceRequestInsert = Database['public']['Tables']['service_requests']['Insert'];
 type Attachment = { url: string; label: string };
 
 const statusColorMap: Record<ServiceRequestStatus, string> = {
@@ -89,16 +83,14 @@ const ServiceRequestForm: React.FC<{ client: ClientRow | null, onSuccess: () => 
     try {
       const payload: ServiceRequestInsert = {
         client_id: client.id,
-        // The service key is now the type column in the 'requests' table
-        type: formData.serviceKey, 
-        title: formData.projectTitle.trim().substring(0, 100),
-        description: formData.brief.trim().substring(0, 5000),
+        service_key: formData.serviceKey,
+        project_title: formData.projectTitle.trim().substring(0, 100),
+        brief: formData.brief.trim().substring(0, 5000),
         attachments: attachments as any,
         status: 'requested',
       };
 
-      // NOTE: This calls the mock function in operations.ts and will need real implementation.
-      const { error: requestError } = await createServiceRequest(payload); 
+      const { error: requestError } = await createServiceRequest(payload);
       if (requestError) throw requestError;
 
       setSuccess(true);
@@ -155,7 +147,6 @@ const MyRequestsList: React.FC<{ client: ClientRow | null, key: number }> = ({ c
   const [loading, setLoading] = useState(true);
   
   const serviceMap = useMemo(() => new Map(businessServicesData.map(s => [
-      // Needs to match the 'type' value saved to the database
       s.title.toLowerCase().replace(/\s/g, '_').replace(/[^a-z0-9_]/g, ''), 
       s.title
     ])), []);
@@ -163,15 +154,13 @@ const MyRequestsList: React.FC<{ client: ClientRow | null, key: number }> = ({ c
   const fetchRequests = useCallback(async () => {
     if (!client) return;
     setLoading(true);
-    // NOTE: This calls the mock function in operations.ts and will need real implementation.
-    const { data, error } = await listMyServiceRequests(client.id); 
+    const { data, error } = await listMyServiceRequests(client.id);
     if (error) {
       console.error('Failed to fetch requests:', error);
     } else if (data) {
       const formattedRequests = data.map(req => ({
         ...req,
-        // Using the 'type' column to get the friendly service name
-        service_name: serviceMap.get(req.type) || req.type,
+        service_name: serviceMap.get(req.service_key) || req.service_key,
       }));
       setRequests(formattedRequests);
     }
@@ -180,7 +169,7 @@ const MyRequestsList: React.FC<{ client: ClientRow | null, key: number }> = ({ c
   
   useEffect(() => {
     fetchRequests();
-  }, [client, props.key, fetchRequests]);
+  }, [client, props.key]);
 
 
   if (loading) return <div className="text-center py-10"><Loader2 size={24} className="animate-spin text-gray-400" /></div>;
@@ -205,8 +194,8 @@ const MyRequestsList: React.FC<{ client: ClientRow | null, key: number }> = ({ c
               {requests.map(req => (
                 <tr key={req.id} className="border-b last:border-b-0 hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-800">{req.service_name}</td>
-                  <td className="px-4 py-3 text-gray-700">{req.title || 'No Title'}</td>
-                  <td className="px-4 py-3 text-gray-500">{new Date(req.created_at).toLocaleDateString()}</td>
+                  <td className="px-4 py-3 text-gray-700">{req.project_title || 'No Title'}</td>
+                  <td className="px-4 py-3 text-gray-500">{new Date(req.requested_at).toLocaleDateString()}</td>
                   <td className="px-4 py-3 text-center">
                     <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold capitalize ${statusColorMap[req.status]}`}>
                       {req.status.replace(/_/g, ' ')}
@@ -235,13 +224,11 @@ const ClientDashboard: React.FC = () => {
         return;
     };
     setIsLoadingProfile(true);
-    // NOTE: This calls the mock function in operations.ts and will need real implementation.
-    const { data, error } = await getOrCreateClientForUser(user.id, user.email || '', user.user_metadata.full_name); 
+    const { data, error } = await getOrCreateClientForUser(user.id, user.email || '', user.user_metadata.full_name);
     if (error) {
       console.error('Error fetching/creating client profile:', error);
     } else {
-      // NOTE: Temporarily casting data to the expected ClientRow shape based on how the component uses it.
-      setClientProfile(data as any); 
+      setClientProfile(data);
     }
     setIsLoadingProfile(false);
   }, [user]);
@@ -303,7 +290,7 @@ const ClientDashboard: React.FC = () => {
             </div>
           </div>
         </div>
-      </main>
+      </main> 
     </div>
   );
 };

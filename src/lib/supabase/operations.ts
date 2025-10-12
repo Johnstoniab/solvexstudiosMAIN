@@ -4,9 +4,54 @@
 import { supabase } from './client';
 import type { Database } from './database.types';
 
+export type RentalGear = Database['public']['Tables']['rental_gear']['Row'];
+export type RentalGearInsert = Database['public']['Tables']['rental_gear']['Insert'];
+export type RentalGearUpdate = Database['public']['Tables']['rental_gear']['Update'];
+
 export type Service = Database['public']['Tables']['services']['Row'];
 export type ServiceInsert = Database['public']['Tables']['services']['Insert'];
 export type ServiceUpdate = Database['public']['Tables']['services']['Update'];
+
+// --- RENTAL GEAR OPERATIONS ---
+
+export const getRentalGear = async () => {
+  return supabase
+    .from('rental_gear')
+    .select('*')
+    .order('category', { ascending: true })
+    .order('name', { ascending: true });
+};
+
+export const createRentalGear = async (gear: RentalGearInsert) => {
+  return supabase
+    .from('rental_gear')
+    .insert(gear)
+    .select()
+    .single();
+};
+
+export const updateRentalGear = async (id: string, updates: RentalGearUpdate) => {
+  return supabase
+    .from('rental_gear')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+};
+
+export const deleteRentalGear = async (id: string) => {
+  return supabase
+    .from('rental_gear')
+    .delete()
+    .eq('id', id);
+};
+
+export const onRentalGearChange = (callback: (payload: any) => void) => {
+  return supabase
+    .channel('public:rental_gear')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'rental_gear' }, callback)
+    .subscribe();
+};
 
 // --- REAL-TIME SERVICE OPERATIONS ---
 
@@ -49,30 +94,9 @@ export const onServicesChange = (callback: (payload: any) => void) => {
 
 // --- EXISTING OPERATIONS (Unchanged) ---
 
-import { rentalEquipmentData } from "../../data/business/rentals.data";
-
-const mapLocalToRow = (item: any) => ({
-  title: item.title,
-  subtitle: item.subtitle,
-  category: item.category ?? null,
-  price: typeof item.price === "number" ? item.price : null,
-  video_url: item.videoUrl ?? null,
-  features: item.features ?? [],
-  images: item.images ?? [],
-  status: item.status ?? "Available",
-  created_at: null,
-  id: null,
-});
-
-export const getRentalEquipment = async () => {
-  const rows = (rentalEquipmentData || []).map(mapLocalToRow);
-  return { data: rows, error: null };
-};
-
 export const getOrCreateClientForUser = async (userId: string, email?: string, fullName?: string) => ({ data: null, error: null });
 export const createServiceRequest = async (...args: any[]) => ({ data: null, error: null });
 export const listMyServiceRequests = async (...args: any[]) => ({ data: [], error: null });
-export const updateRentalEquipment = async (...args: any[]) => ({ data: null, error: null });
 export const getJobTeamsAndPositions = async (...args: any[]) => ({ data: { teams: [], positions: [] }, error: null });
 export const updateJobTeam = async (...args: any[]) => ({ data: null, error: null });
 export const updateJobPosition = async (...args: any[]) => ({ data: null, error: null });

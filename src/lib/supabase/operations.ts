@@ -7,12 +7,12 @@ import type { Database } from './database.types';
 export type Service = Database['public']['Tables']['services']['Row'];
 export type ServiceInsert = Database['public']['Tables']['services']['Insert'];
 export type ServiceUpdate = Database['public']['Tables']['services']['Update'];
-
+ 
 // --- NEW REAL-TIME SERVICE OPERATIONS ---
 
 // Get all active (not deleted) services
 export const getServices = async () => supabase.from('services').select('*').eq('is_deleted', false);
- 
+
 // Get all soft-deleted services for the restore view
 export const getDeletedServices = async () => supabase.from('services').select('*').eq('is_deleted', true);
 
@@ -95,4 +95,4 @@ export type ServiceRequestStatus =
   | "in_progress"
   | "completed"
   | "cancelled"
-  | "pending";N
+  | "pending";

@@ -290,7 +290,7 @@ const ClientDashboard: React.FC = () => {
             </div>
           </div>
         </div>
-      </main> 
+      </main>
     </div>
   );
 };

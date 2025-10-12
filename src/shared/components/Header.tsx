@@ -114,7 +114,7 @@ const Header = () => {
                   );
                 })}
                 <button
-                  onClick={handleMyPageClick} 
+                  onClick={handleMyPageClick}
                   className="block mt-4 w-full border border-[#C10100] text-[#C10100] hover:bg-[#C10100] hover:text-white font-bold py-3 px-4 rounded-lg text-center transition-colors"
                 >
                   MY PAGE

@@ -131,7 +131,7 @@ const Footer = () => {
                 Terms
               </Link>
             </p>
-          </div> 
+          </div>
         </div>
       </div>
     </footer>

@@ -4,54 +4,88 @@
 import { supabase } from './client';
 import type { Database } from './database.types';
 
+// Define the shape of data the public frontend expects (based on old mock data)
+export type RentalItemDisplay = {
+  id: string;
+  title: string;          // Mapped from 'name'
+  subtitle: string | null; // Mapped from 'description'
+  category: string;
+  price: number;          // Mapped from 'price_per_day'
+  images: string[] | null; // Mapped from 'image_url' (converted to array)
+  features: string[] | null; // Placeholder
+  video_url: string | null; // Placeholder
+  status: 'Available' | 'Unavailable' | 'Retired'; // Mapped from 'is_available'
+};
+
+// Original table types (for internal Admin use)
 export type RentalGear = Database['public']['Tables']['rental_gear']['Row'];
 export type RentalGearInsert = Database['public']['Tables']['rental_gear']['Insert'];
 export type RentalGearUpdate = Database['public']['Tables']['rental_gear']['Update'];
-
 export type Service = Database['public']['Tables']['services']['Row'];
 export type ServiceInsert = Database['public']['Tables']['services']['Insert'];
 export type ServiceUpdate = Database['public']['Tables']['services']['Update'];
 
-// --- RENTAL GEAR OPERATIONS ---
+// --- RENTAL EQUIPMENT OPERATIONS ---
 
-export const getRentalGear = async () => {
-  return supabase
+// FIX: Queries 'rental_gear' and maps column names to frontend expectations
+export const getRentalEquipment = async () => {
+  const { data, error } = await supabase
     .from('rental_gear')
-    .select('*')
+    .select(`
+      id,
+      name,           
+      description,
+      category,
+      price_per_day,
+      image_url,
+      is_available
+    `)
+    .eq('is_available', true) // Only fetch available items for public view
     .order('category', { ascending: true })
     .order('name', { ascending: true });
+
+  if (error) return { data: [], error };
+
+  // Manually map to the expected frontend format
+  const mappedData = data.map(item => ({
+    id: item.id,
+    title: item.name,                      // name -> title
+    subtitle: item.description,            // description -> subtitle
+    category: item.category,
+    price: item.price_per_day,             // price_per_day -> price
+    images: item.image_url ? [item.image_url] : [''], // image_url -> images[0]
+    features: [],                          // Placeholder
+    video_url: '',                         // Placeholder
+    status: item.is_available ? 'Available' : 'Unavailable', // is_available -> status
+  }));
+  
+  return { data: mappedData as RentalItemDisplay[], error: null };
 };
 
-export const createRentalGear = async (gear: RentalGearInsert) => {
-  return supabase
-    .from('rental_gear')
-    .insert(gear)
-    .select()
-    .single();
+// Fetches ALL equipment for the admin dashboard (using the correct table)
+export const getAllRentalEquipment = async () => {
+  return supabase.from('rental_gear').select('*');
 };
 
-export const updateRentalGear = async (id: string, updates: RentalGearUpdate) => {
-  return supabase
-    .from('rental_gear')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single();
+
+// Updates a piece of rental equipment
+export const updateRentalEquipment = async (id: string, updates: Partial<RentalGear>) => {
+  return supabase.from('rental_gear').update(updates).eq('id', id);
 };
 
-export const deleteRentalGear = async (id: string) => {
-  return supabase
-    .from('rental_gear')
-    .delete()
-    .eq('id', id);
+// Deletes a piece of rental equipment
+export const deleteRentalEquipment = async (id: string) => {
+  return supabase.from('rental_gear').delete().eq('id', id);
 };
 
-export const onRentalGearChange = (callback: (payload: any) => void) => {
+// Subscribes to real-time changes on the rental_gear table
+export const onRentalGearChange = (callback: () => void) => {
   return supabase
     .channel('public:rental_gear')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'rental_gear' }, callback)
     .subscribe();
 };
+
 
 // --- REAL-TIME SERVICE OPERATIONS ---
 
@@ -93,23 +127,6 @@ export const onServicesChange = (callback: (payload: any) => void) => {
 
 
 // --- EXISTING OPERATIONS (Unchanged) ---
-
-export const getRentalEquipment = async () => {
-  return supabase
-    .from('rental_equipment')
-    .select('*')
-    .order('category', { ascending: true });
-};
-
-export const updateRentalEquipment = async (id: string, updates: any) => {
-  return supabase
-    .from('rental_equipment')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single();
-};
-
 export const getOrCreateClientForUser = async (userId: string, email?: string, fullName?: string) => ({ data: null, error: null });
 export const createServiceRequest = async (...args: any[]) => ({ data: null, error: null });
 export const listMyServiceRequests = async (...args: any[]) => ({ data: [], error: null });

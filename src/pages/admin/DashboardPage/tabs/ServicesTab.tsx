@@ -18,7 +18,7 @@ import { supabase } from '../../../../lib/supabase/client';
 const emptyService: Partial<Service> = {
   title: "", summary: "", image_url: "", title_color: "text-sky-800",
   description: "", sub_services: [], outcome: "", status: 'draft',
-  image_fit: 'cover', image_position: 'center', image_rotation: 0,
+  image_fit: 'cover', image_position: 'center', image_rotation: '0',
 };
 
 const ServicesTab: React.FC = () => {
@@ -115,6 +115,7 @@ const ServicesTab: React.FC = () => {
       description: s.details.description, sub_services: s.details.subServices, outcome: s.details.outcome,
       status: 'draft' as 'draft' | 'published',
     }));
+    // @ts-expect-error - Seed data structure doesn't include all fields
     const { error } = await supabase.from('services').insert(seedData);
     if (error) addToast({ type: 'error', title: 'Seeding failed', message: error.message });
     else addToast({ type: 'success', title: 'Database seeded!' });
@@ -150,7 +151,7 @@ const ServicesTab: React.FC = () => {
               </div>
               <div>
                 <label className="font-medium">Image Rotation</label>
-                <select value={editingService.image_rotation || 0} onChange={e => setEditingService({...editingService, image_rotation: parseInt(e.target.value)})} className="mt-1 w-full p-2 border rounded-md">
+                <select value={editingService.image_rotation || '0'} onChange={e => setEditingService({...editingService, image_rotation: e.target.value})} className="mt-1 w-full p-2 border rounded-md">
                   <option value="0">No rotation</option>
                   <option value="90">90 degrees</option>
                   <option value="180">180 degrees</option>
@@ -247,4 +248,4 @@ const ServicesTab: React.FC = () => {
   );
 };
 
-export default ServicesTab; 
+export default ServicesTab;

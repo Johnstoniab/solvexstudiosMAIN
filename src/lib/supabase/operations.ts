@@ -4,37 +4,54 @@
 import { supabase } from './client';
 import type { Database } from './database.types';
 
+export type RentalGear = Database['public']['Tables']['rental_gear']['Row'];
+export type RentalGearInsert = Database['public']['Tables']['rental_gear']['Insert'];
+export type RentalGearUpdate = Database['public']['Tables']['rental_gear']['Update'];
+
 export type Service = Database['public']['Tables']['services']['Row'];
 export type ServiceInsert = Database['public']['Tables']['services']['Insert'];
 export type ServiceUpdate = Database['public']['Tables']['services']['Update'];
 
-// --- RENTAL EQUIPMENT OPERATIONS (NEW) ---
-export type RentalEquipment = Database['public']['Tables']['rental_equipment']['Row'];
+// --- RENTAL GEAR OPERATIONS ---
 
-// Fetches all equipment for the public (only 'Available' status)
-export const getRentalEquipment = async () => {
-  return supabase.from('rental_equipment').select('*').eq('status', 'Available');
-};
-
-// Fetches ALL equipment for the admin dashboard
-export const getAllRentalEquipment = async () => {
-  return supabase.from('rental_equipment').select('*');
-};
-
-
-// Updates a piece of rental equipment
-export const updateRentalEquipment = async (id: string, updates: Partial<RentalEquipment>) => {
-  return supabase.from('rental_equipment').update(updates).eq('id', id);
-};
-
-// Subscribes to real-time changes on the rental_equipment table
-export const onRentalEquipmentChange = (callback: () => void) => {
+export const getRentalGear = async () => {
   return supabase
-    .channel('public:rental_equipment')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'rental_equipment' }, callback)
+    .from('rental_gear')
+    .select('*')
+    .order('category', { ascending: true })
+    .order('name', { ascending: true });
+};
+
+export const createRentalGear = async (gear: RentalGearInsert) => {
+  return supabase
+    .from('rental_gear')
+    .insert(gear)
+    .select()
+    .single();
+};
+
+export const updateRentalGear = async (id: string, updates: RentalGearUpdate) => {
+  return supabase
+    .from('rental_gear')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+};
+
+export const deleteRentalGear = async (id: string) => {
+  return supabase
+    .from('rental_gear')
+    .delete()
+    .eq('id', id);
+};
+
+export const onRentalGearChange = (callback: (payload: any) => void) => {
+  return supabase
+    .channel('public:rental_gear')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'rental_gear' }, callback)
     .subscribe();
 };
-
 
 // --- REAL-TIME SERVICE OPERATIONS ---
 
@@ -76,6 +93,23 @@ export const onServicesChange = (callback: (payload: any) => void) => {
 
 
 // --- EXISTING OPERATIONS (Unchanged) ---
+
+export const getRentalEquipment = async () => {
+  return supabase
+    .from('rental_equipment')
+    .select('*')
+    .order('category', { ascending: true });
+};
+
+export const updateRentalEquipment = async (id: string, updates: any) => {
+  return supabase
+    .from('rental_equipment')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+};
+
 export const getOrCreateClientForUser = async (userId: string, email?: string, fullName?: string) => ({ data: null, error: null });
 export const createServiceRequest = async (...args: any[]) => ({ data: null, error: null });
 export const listMyServiceRequests = async (...args: any[]) => ({ data: [], error: null });

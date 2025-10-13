@@ -78,7 +78,10 @@ const TeamsTab: React.FC = () => {
     if (memberMap.has(null) && memberMap.get(null)!.length > 0) {
         grouped.push({
             id: 'unassigned',
+            name: 'Unassigned',
             team_name: 'Unassigned',
+            description: null,
+            updated_at: new Date().toISOString(),
             members: memberMap.get(null)!,
             // Add dummy fields to match Team type for consistency
             created_at: new Date().toISOString(),

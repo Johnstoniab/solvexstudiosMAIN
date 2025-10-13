@@ -1,306 +1,579 @@
-// @ts-nocheck
-import React from "react";
-import { useState } from "react";
-import { RefreshCw, Database, CircleCheck as CheckCircle, CircleAlert as AlertCircle } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { Loader2, Plus, Search, Pencil, Trash2, X, Check } from "lucide-react";
 import Card from "../components/Card";
-import { supabase } from "../../../../lib/supabase/client";
+import {
+  getRentalGear,
+  createRentalGear,
+  updateRentalGear,
+  deleteRentalGear,
+  onRentalGearChange
+} from "../../../../lib/supabase/operations";
+import type { RentalGear, RentalGearInsert, RentalGearUpdate } from "../../../../lib/supabase/operations";
 
-const SettingsTab: React.FC = () => {
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [syncMessage, setSyncMessage] = useState('');
+const EquipmentTab: React.FC = () => {
+  const [equipment, setEquipment] = useState<RentalGear[]>([]);
+  const [filteredEquipment, setFilteredEquipment] = useState<RentalGear[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const handleDatabaseSync = async () => {
-    setIsSyncing(true);
-    setSyncStatus('idle');
-    setSyncMessage('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
-    try {
-      // Insert/update rental equipment data
-      const equipmentData = [
-        {
-          title: "DJI Osmo Pocket 3 Creator Combo",
-          subtitle: "Compact and capable 4K pocket gimbal camera.",
-          category: "Camera",
-          price: 100,
-          images: ['https://encrypted-tbn1.gstatic.com/shopping?q=tbn:ANd9GcSoYt3SQZ4JdARHvsnt5YNwEcLOgCK3ChpttRQ11k2-aVn6OiYSfJq7Upf10YZUtSUsxy8FFVDNiyxYdGfzaU2lk6uvdPM5dsGQaoFwVRdQBPHn9qb82eu4ww'],
-          features: ['1-Inch CMOS & 4K/120fps', '2-Inch Rotatable Screen', '3-Axis Gimbal Mechanical Stabilization'],
-          video_url: 'https://www.youtube.com/embed/MZq_2OJ5kOo',
-          status: 'Available' as const
-        },
-        {
-          title: "Sony A7 IV",
-          subtitle: "Mirrorless hybrid camera with image stabilization and lightning-fast autofocus.",
-          category: "Camera",
-          price: 700,
-          images: ['https://www.japanphoto.no/imageserver/750/750/scale/p/japan/PIM_PROD/Sony/PIM1143909_Sony_1634709214767.jpg'],
-          features: ['Newly developed back-illuminated 33 megapixel Exmor R sensor', '4K/60p video in super35 format'],
-          video_url: 'https://www.youtube.com/embed/bUgOEDqhZVY',
-          status: 'Available' as const
-        },
-        {
-          title: "DJI MINI 4 PRO FLY MORE COMBO (DJI RC 2)",
-          subtitle: "Professional drone with 4K HDR capabilities.",
-          category: "Drone",
-          price: 500,
-          images: ['https://djioslo.no/Userfiles/Upload/images/Modules/Eshop/27473_31283_DJI-Mini-4-Pro-RC-2-2.jpeg'],
-          features: ['Under 249g', '4K/60fps HDR True Vertical Shooting', 'Omnidirectional obstacle sensing'],
-          video_url: 'https://www.youtube.com/embed/FaCKViuXd_I',
-          status: 'Available' as const
-        },
-        {
-          title: "Sony FE 28-70mm f/3.5-5.6 US",
-          subtitle: "Lightweight, compact 35mm full-frame standard zoom lens.",
-          category: "Lens",
-          price: 150,
-          images: ['https://www.sony.no/image/fd6df2f58083e52631a23154639f3571?fmt=pjpeg&wid=1014&hei=396&bgcolor=F1F5F9&bgc=F1F5F9'],
-          features: ['Lightweight, compact 35mm full-frame standard zoom lens', '28-70mm zoom range and F3.5-5.6 aperture'],
-          video_url: 'https://www.youtube.com/embed/x4ZZC5nqS0o',
-          status: 'Available' as const
-        },
-        {
-          title: "DJI MIC MINI",
-          subtitle: "Carry Less, Capture More",
-          category: "Audio",
-          price: 30,
-          images: ['https://djioslo.no/Userfiles/Upload/images/Modules/Eshop/31146_DJI-Mic-Mini-45-DJI-Mic-Mini-Transmitte(1).png'],
-          features: ['Small, ultralight, discreet', 'High-quality sound with stable transmission'],
-          video_url: 'https://www.youtube.com/embed/iBgZJJ-NBTs',
-          status: 'Available' as const
-        },
-        {
-          title: "Canon EOS 5D Mark II",
-          subtitle: "Full Frame DSLR Camera",
-          category: "Camera",
-          price: 800,
-          images: ['https://m.media-amazon.com/images/I/819GW4aelwL._AC_SL1500_.jpg'],
-          features: ['21MP - Full frame CMOS Sensor', 'ISO 100 - 6400( expands to 50 - 25600)'],
-          video_url: 'https://www.youtube.com/embed/y_34mvEZGx0',
-          status: 'Available' as const
-        }
-      ];
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [currentItem, setCurrentItem] = useState<RentalGear | null>(null);
 
-      // Upsert equipment data
-      const { error: equipmentError } = await supabase
-        .from('rental_equipment')
-        .upsert(equipmentData, { onConflict: 'title', ignoreDuplicates: false });
+  const [formData, setFormData] = useState<RentalGearInsert>({
+    name: "",
+    description: "",
+    category: "",
+    price_per_day: 0,
+    is_available: true,
+    image_url: ""
+  });
 
-      if (equipmentError) throw equipmentError;
-
-      // Insert job teams data
-      const jobTeamsData = [
-        { name: "Strategy & Planning Team", image_url: "https://images.pexels.com/photos/7490890/pexels-photo-7490890.jpeg" },
-        { name: "Technology and Innovation Team", image_url: "https://images.pexels.com/photos/5239811/pexels-photo-5239811.jpeg" },
-        { name: "Marketing Team", image_url: "https://images.pexels.com/photos/7691715/pexels-photo-7691715.jpeg" },
-        { name: "Content & Production Team", image_url: "https://images.pexels.com/photos/12249084/pexels-photo-12249084.jpeg" }
-      ];
-
-      // Insert teams one by one to handle conflicts properly
-      const teams: Array<{ id: string; name: string; image_url: string }> = [];
-      for (const teamData of jobTeamsData) {
-        const { data: existingTeam } = await supabase
-          .from('job_teams')
-          .select('*')
-          .eq('name', teamData.name)
-          .maybeSingle();
-
-        if (existingTeam) {
-          // Update existing team
-          const { data: updatedTeam, error: updateError } = await supabase
-            .from('job_teams')
-            .update(teamData)
-            .eq('id', existingTeam.id)
-            .select()
-            .single();
-          if (updateError) throw updateError;
-          if (updatedTeam) teams.push(updatedTeam);
-        } else {
-          // Insert new team
-          const { data: newTeam, error: insertError } = await supabase
-            .from('job_teams')
-            .insert([teamData])
-            .select()
-            .single();
-          if (insertError) throw insertError;
-          if (newTeam) teams.push(newTeam);
-        }
-      }
-
-
-      // Insert job positions for each team
-      if (teams) {
-        const positionsData = [
-          // Strategy & Planning Team
-          { name: "Brand Strategist", description: "Lead strategic initiatives and provide expert consultation to drive business growth and innovation.", team_id: teams.find(t => t.name === "Strategy & Planning Team")?.id },
-          { name: "Advertising Specialist", description: "Analyze business processes and requirements to identify opportunities for improvement and optimization.", team_id: teams.find(t => t.name === "Strategy & Planning Team")?.id },
-          { name: "Product Innovator", description: "Analyze business processes and requirements to identify opportunities for improvement and optimization.", team_id: teams.find(t => t.name === "Strategy & Planning Team")?.id },
-          
-          // Technology Team
-          { name: "Software Developer/Engineer", description: "Build and maintain web applications using modern technologies and best practices.", team_id: teams.find(t => t.name === "Technology and Innovation Team")?.id },
-          { name: "Cloud Architect/DevOps Engineer", description: "Create intuitive and engaging user experiences through thoughtful design and user research.", team_id: teams.find(t => t.name === "Technology and Innovation Team")?.id },
-          { name: "Artificial Intelligence Specialist", description: "Focus on exploring, prototyping, and integrating cutting-edge technologies relevant to their clients' needs.", team_id: teams.find(t => t.name === "Technology and Innovation Team")?.id },
-          
-          // Marketing Team
-          { name: "Digital Marketer", description: "Drive digital marketing campaigns and strategies to increase brand awareness and customer acquisition.", team_id: teams.find(t => t.name === "Marketing Team")?.id },
-          { name: "Influencer / Brand Ambassador", description: "Builds visibility for clients by creating content that amplifies clients' brand campaigns and engages target audiences.", team_id: teams.find(t => t.name === "Marketing Team")?.id },
-          { name: "Content Creator", description: "Produce engaging content across various platforms to connect with our audience and tell our story.", team_id: teams.find(t => t.name === "Marketing Team")?.id },
-          
-          // Content & Production Team
-          { name: "Video Editor / Videographer", description: "Produces, edits and enhances video content to deliver polished, high-impact campaigns.", team_id: teams.find(t => t.name === "Content & Production Team")?.id },
-          { name: "Photographer", description: "Product, lifestyle, and brand photography.", team_id: teams.find(t => t.name === "Content & Production Team")?.id },
-          { name: "Graphic Designer", description: "Develop visual concepts and designs that communicate ideas and inspire audiences.", team_id: teams.find(t => t.name === "Content & Production Team")?.id },
-          { name: "Motion Graphics Designer", description: "Produces animations and visuals for ads, social media and brand storytelling.", team_id: teams.find(t => t.name === "Content & Production Team")?.id }
-        ].filter(pos => pos.team_id); // Only include positions with valid team_id
-
-        // Insert positions one by one to handle conflicts properly
-        for (const positionData of positionsData) {
-          const { data: existingPosition } = await supabase
-            .from('job_positions')
-            .select('*')
-            .eq('name', positionData.name)
-            .eq('team_id', positionData.team_id)
-            .maybeSingle();
-
-          if (existingPosition) {
-            // Update existing position
-            const { error: updateError } = await supabase
-              .from('job_positions')
-              .update(positionData)
-              .eq('id', existingPosition.id);
-            if (updateError) throw updateError;
-          } else {
-            // Insert new position
-            const { error: insertError } = await supabase
-              .from('job_positions')
-              .insert([positionData]);
-            if (insertError) throw insertError;
-          }
-        }
-
-      }
-
-      setSyncStatus('success');
-      setSyncMessage('Database successfully synced with fresh data!');
-    } catch (error) {
-      console.error('Database sync error:', error);
-      setSyncStatus('error');
-      setSyncMessage(`Sync failed: ${(error as Error).message}`);
-    } finally {
-      setIsSyncing(false);
-      // Clear status after 5 seconds
-      setTimeout(() => {
-        setSyncStatus('idle');
-        setSyncMessage('');
-      }, 5000);
+  const fetchEquipment = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    const { data, error: fetchError } = await getRentalGear();
+    if (fetchError) {
+      setError("Failed to load equipment.");
+      console.error(fetchError);
+    } else {
+      setEquipment(data || []);
+      setFilteredEquipment(data || []);
     }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchEquipment();
+
+    const channel = onRentalGearChange((payload) => {
+      console.log('Real-time update:', payload);
+      fetchEquipment();
+    });
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [fetchEquipment]);
+
+  useEffect(() => {
+    let filtered = equipment;
+
+    if (searchTerm) {
+      filtered = filtered.filter(item =>
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter(item => item.category === selectedCategory);
+    }
+
+    setFilteredEquipment(filtered);
+  }, [searchTerm, selectedCategory, equipment]);
+
+  const categories = ["all", ...Array.from(new Set(equipment.map(e => e.category).filter(Boolean)))];
+
+  const showSuccess = (message: string) => {
+    setSuccessMessage(message);
+    setTimeout(() => setSuccessMessage(null), 3000);
+  };
+
+  const handleToggleAvailability = async (item: RentalGear) => {
+    const updates: RentalGearUpdate = { is_available: !item.is_available };
+    const { error: updateError } = await updateRentalGear(item.id, updates);
+
+    if (updateError) {
+      setError("Failed to update availability.");
+      console.error(updateError);
+    } else {
+      showSuccess(`${item.name} marked as ${!item.is_available ? 'available' : 'unavailable'}`);
+    }
+  };
+
+  const handleUpdatePrice = async (item: RentalGear, newPrice: number) => {
+    if (newPrice < 0) {
+      setError("Price must be a positive number");
+      return;
+    }
+
+    const updates: RentalGearUpdate = { price_per_day: newPrice };
+    const { error: updateError } = await updateRentalGear(item.id, updates);
+
+    if (updateError) {
+      setError("Failed to update price.");
+      console.error(updateError);
+    } else {
+      showSuccess(`Price updated for ${item.name}`);
+    }
+  };
+
+  const handleAddEquipment = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.name || formData.price_per_day <= 0) {
+      setError("Please provide valid equipment name and price");
+      return;
+    }
+
+    const { error: createError } = await createRentalGear(formData);
+
+    if (createError) {
+      setError("Failed to add equipment.");
+      console.error(createError);
+    } else {
+      showSuccess("Equipment added successfully");
+      setIsAddModalOpen(false);
+      resetForm();
+    }
+  };
+
+  const handleEditEquipment = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!currentItem) return;
+
+    const updates: RentalGearUpdate = {
+      name: formData.name,
+      description: formData.description,
+      category: formData.category,
+      price_per_day: formData.price_per_day,
+      image_url: formData.image_url
+    };
+
+    const { error: updateError } = await updateRentalGear(currentItem.id, updates);
+
+    if (updateError) {
+      setError("Failed to update equipment.");
+      console.error(updateError);
+    } else {
+      showSuccess("Equipment updated successfully");
+      setIsEditModalOpen(false);
+      setCurrentItem(null);
+      resetForm();
+    }
+  };
+
+  const handleDeleteEquipment = async (item: RentalGear) => {
+    if (!confirm(`Are you sure you want to delete ${item.name}?`)) return;
+
+    const { error: deleteError } = await deleteRentalGear(item.id);
+
+    if (deleteError) {
+      setError("Failed to delete equipment.");
+      console.error(deleteError);
+    } else {
+      showSuccess("Equipment deleted successfully");
+    }
+  };
+
+  const openEditModal = (item: RentalGear) => {
+    setCurrentItem(item);
+    setFormData({
+      name: item.name,
+      description: item.description || "",
+      category: item.category || "",
+      price_per_day: item.price_per_day,
+      is_available: item.is_available,
+      image_url: item.image_url || ""
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      description: "",
+      category: "",
+      price_per_day: 0,
+      is_available: true,
+      image_url: ""
+    });
+    setError(null);
+  };
+
+  const closeModals = () => {
+    setIsAddModalOpen(false);
+    setIsEditModalOpen(false);
+    setCurrentItem(null);
+    resetForm();
   };
 
   return (
     <div className="space-y-6">
-      <Card title="Database Management">
+      <Card title="Rental Gear Management">
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <div>
-              <h3 className="font-semibold text-gray-900">Sync Database</h3>
-              <p className="text-sm text-gray-600">Update database with latest equipment and job data</p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+            <div className="flex flex-col sm:flex-row gap-3 flex-1 w-full">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search equipment..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>
+                    {cat === "all" ? "All Categories" : cat}
+                  </option>
+                ))}
+              </select>
             </div>
+
             <button
-              onClick={handleDatabaseSync}
-              disabled={isSyncing}
-              className="flex items-center gap-2 bg-[#FF5722] text-white px-4 py-2 rounded-lg hover:bg-[#E64A19] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              onClick={() => setIsAddModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-              {isSyncing ? 'Syncing...' : 'Sync Now'}
+              <Plus className="w-4 h-4" />
+              Add Equipment
             </button>
           </div>
-          
-          {syncStatus !== 'idle' && (
-            <div className={`flex items-center gap-2 p-3 rounded-lg ${
-              syncStatus === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-            }`}>
-              {syncStatus === 'success' ? (
-                <CheckCircle className="w-4 h-4" />
-              ) : (
-                <AlertCircle className="w-4 h-4" />
-              )}
-              <span className="text-sm">{syncMessage}</span>
+
+          {successMessage && (
+            <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 text-green-800 rounded-lg">
+              <Check className="w-5 h-5" />
+              {successMessage}
+            </div>
+          )}
+
+          {error && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 text-red-800 rounded-lg">
+              <X className="w-5 h-5" />
+              {error}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+            </div>
+          ) : filteredEquipment.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              {searchTerm || selectedCategory !== "all"
+                ? "No equipment found matching your filters"
+                : "No equipment added yet"}
+            </div>
+          ) : (
+            <div className="overflow-x-auto -mx-6">
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr className="text-left text-gray-600">
+                    <th className="px-6 py-3 font-semibold">Equipment</th>
+                    <th className="px-6 py-3 font-semibold">Category</th>
+                    <th className="px-6 py-3 font-semibold text-center">Availability</th>
+                    <th className="px-6 py-3 font-semibold text-right">Price/Day</th>
+                    <th className="px-6 py-3 font-semibold text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {filteredEquipment.map(item => (
+                    <EquipmentRow
+                      key={item.id}
+                      item={item}
+                      onToggleAvailability={handleToggleAvailability}
+                      onUpdatePrice={handleUpdatePrice}
+                      onEdit={openEditModal}
+                      onDelete={handleDeleteEquipment}
+                    />
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
       </Card>
 
-      <Card title="Users & Roles (RBAC)">
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-lg border p-3 text-sm">
-            <div className="font-medium mb-2">Roles</div>
-            <ul className="space-y-1">
-              <li>Admin</li><li>Project Manager</li><li>Finance</li><li>Operations</li><li>Creative</li><li>Intern</li><li>Partner (portal)</li><li>Client (portal)</li>
-            </ul>
-          </div>
-          <div className="rounded-lg border p-3 text-sm">
-            <div className="font-medium mb-2">Permission Matrix</div>
-            <div className="h-28 rounded-md bg-gray-100" />
-            <div className="mt-2 text-xs text-gray-600">CRUD per module + portal scopes</div>
-          </div>
-        </div>
-      </Card>
+      {isAddModalOpen && (
+        <EquipmentModal
+          title="Add New Equipment"
+          formData={formData}
+          setFormData={setFormData}
+          onSubmit={handleAddEquipment}
+          onClose={closeModals}
+        />
+      )}
 
-      <Card title="Security">
-        <ul className="space-y-2 text-sm">
-          <li className="rounded-lg border bg-gray-50 px-3 py-2">2FA, session timeout, login activity</li>
-          <li className="rounded-lg border bg-gray-50 px-3 py-2">IP allowlist (optional), password policy</li>
-        </ul>
-      </Card>
-
-      <Card title="Branding">
-        <ul className="space-y-2 text-sm">
-          <li className="rounded-lg border bg-gray-50 px-3 py-2">Logo, colors, email templates, legal footer</li>
-          <li className="rounded-lg border bg-gray-50 px-3 py-2">Default portal theme</li>
-        </ul>
-      </Card>
-
-      <Card title="Integrations">
-        <ul className="space-y-2 text-sm">
-          <li className="rounded-lg border bg-gray-50 px-3 py-2">Supabase (auth, DB, storage)</li>
-          <li className="rounded-lg border bg-gray-50 px-3 py-2">Paystack (payments/links)</li>
-          <li className="rounded-lg border bg-gray-50 px-3 py-2">Twilio (SMS)</li>
-          <li className="rounded-lg border bg-gray-50 px-3 py-2">Google Calendar/Outlook (scheduling)</li>
-          <li className="rounded-lg border bg-gray-50 px-3 py-2">Google Drive/Dropbox (assets)</li>
-        </ul>
-      </Card>
-
-      <Card title="Notifications & Automations">
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-lg border p-3 text-sm">
-            <div className="font-medium mb-1">System</div>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>Overdue invoices, deadlines, equipment overdue/maintenance</li>
-              <li>Applicant pending, agreement expiring</li>
-            </ul>
-          </div>
-          <div className="rounded-lg border p-3 text-sm">
-            <div className="font-medium mb-1">Stakeholders</div>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>Client: project updates, milestones, invoices</li>
-              <li>Partner: renewals, briefs, assets</li>
-              <li>Team: assignments, conflicts, daily agenda</li>
-            </ul>
-          </div>
-        </div>
-        <div className="mt-2 text-xs text-gray-600">Channels: In-app, Email, (optional) SMS/WhatsApp for critical items.</div>
-      </Card>
-
-      <Card title="Metrics That Matter">
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 text-sm">
-          <div className="rounded-lg border p-3"><div className="font-medium mb-1">Client</div><ul className="list-disc pl-5 space-y-1"><li>Retention, response time, project count, service mix</li></ul></div>
-          <div className="rounded-lg border p-3"><div className="font-medium mb-1">Projects</div><ul className="list-disc pl-5 space-y-1"><li>On-time delivery %, revisions per deliverable, throughput</li></ul></div>
-          <div className="rounded-lg border p-3"><div className="font-medium mb-1">Teams</div><ul className="list-disc pl-5 space-y-1"><li>Utilization, capacity gaps, on-time milestone rate</li></ul></div>
-          <div className="rounded-lg border p-3"><div className="font-medium mb-1">Equipment</div><ul className="list-disc pl-5 space-y-1"><li>Utilization %, overdue %, maintenance cycles, ROI per item</li></ul></div>
-          <div className="rounded-lg border p-3"><div className="font-medium mb-1">Partners</div><ul className="list-disc pl-5 space-y-1"><li>Referrals count, conversion, revenue influence, engagement aging</li></ul></div>
-        </div>
-      </Card>
+      {isEditModalOpen && currentItem && (
+        <EquipmentModal
+          title="Edit Equipment"
+          formData={formData}
+          setFormData={setFormData}
+          onSubmit={handleEditEquipment}
+          onClose={closeModals}
+        />
+      )}
     </div>
   );
 };
 
-export default SettingsTab;
+interface EquipmentRowProps {
+  item: RentalGear;
+  onToggleAvailability: (item: RentalGear) => void;
+  onUpdatePrice: (item: RentalGear, price: number) => void;
+  onEdit: (item: RentalGear) => void;
+  onDelete: (item: RentalGear) => void;
+}
+
+const EquipmentRow: React.FC<EquipmentRowProps> = ({
+  item,
+  onToggleAvailability,
+  onUpdatePrice,
+  onEdit,
+  onDelete
+}) => {
+  const [isEditingPrice, setIsEditingPrice] = useState(false);
+  const [tempPrice, setTempPrice] = useState(item.price_per_day);
+
+  const handlePriceSave = () => {
+    if (tempPrice !== item.price_per_day) {
+      onUpdatePrice(item, tempPrice);
+    }
+    setIsEditingPrice(false);
+  };
+
+  const handlePriceKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handlePriceSave();
+    } else if (e.key === 'Escape') {
+      setTempPrice(item.price_per_day);
+      setIsEditingPrice(false);
+    }
+  };
+
+  return (
+    <tr className="hover:bg-gray-50 transition-colors">
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-4">
+          {item.image_url ? (
+            <img
+              src={item.image_url}
+              alt={item.name}
+              className="w-12 h-12 object-cover rounded-lg bg-gray-100"
+            />
+          ) : (
+            <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400 text-xs">
+              No image
+            </div>
+          )}
+          <div>
+            <div className="font-medium text-gray-800">{item.name}</div>
+            {item.description && (
+              <div className="text-xs text-gray-500 mt-0.5 line-clamp-1">
+                {item.description}
+              </div>
+            )}
+          </div>
+        </div>
+      </td>
+
+      <td className="px-6 py-4 text-gray-600">
+        {item.category || "-"}
+      </td>
+
+      <td className="px-6 py-4 text-center">
+        <button
+          onClick={() => onToggleAvailability(item)}
+          className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+            item.is_available
+              ? "bg-green-100 text-green-800 hover:bg-green-200"
+              : "bg-red-100 text-red-800 hover:bg-red-200"
+          }`}
+        >
+          {item.is_available ? "Available" : "Unavailable"}
+        </button>
+      </td>
+
+      <td className="px-6 py-4 text-right">
+        {isEditingPrice ? (
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            value={tempPrice}
+            onChange={(e) => setTempPrice(Number(e.target.value))}
+            onKeyDown={handlePriceKeyDown}
+            onBlur={handlePriceSave}
+            autoFocus
+            className="w-24 text-right bg-white border border-blue-400 rounded-md px-2 py-1 focus:ring-2 focus:ring-blue-500"
+          />
+        ) : (
+          <div
+            onClick={() => {
+              setIsEditingPrice(true);
+              setTempPrice(item.price_per_day);
+            }}
+            className="cursor-pointer font-semibold text-gray-800 inline-block px-2 py-1 rounded hover:bg-gray-200 transition-colors"
+          >
+            GHS {Number(item.price_per_day).toFixed(2)}
+          </div>
+        )}
+      </td>
+
+      <td className="px-6 py-4">
+        <div className="flex items-center justify-center gap-2">
+          <button
+            onClick={() => onEdit(item)}
+            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+            title="Edit"
+          >
+            <Pencil className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => onDelete(item)}
+            className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+            title="Delete"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+};
+
+interface EquipmentModalProps {
+  title: string;
+  formData: RentalGearInsert;
+  setFormData: React.Dispatch<React.SetStateAction<RentalGearInsert>>;
+  onSubmit: (e: React.FormEvent) => void;
+  onClose: () => void;
+}
+
+const EquipmentModal: React.FC<EquipmentModalProps> = ({
+  title,
+  formData,
+  setFormData,
+  onSubmit,
+  onClose
+}) => {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b">
+          <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        <form onSubmit={onSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Equipment Name *
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="e.g., Sony A7 III Camera"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description
+            </label>
+            <textarea
+              value={formData.description || ""}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Detailed description of the equipment..."
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Category
+              </label>
+              <input
+                type="text"
+                value={formData.category || ""}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="e.g., Camera, Lighting"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Price per Day (GHS) *
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                required
+                value={formData.price_per_day}
+                onChange={(e) => setFormData({ ...formData, price_per_day: Number(e.target.value) })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Image URL
+            </label>
+            <input
+              type="url"
+              value={formData.image_url || ""}
+              onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="https://example.com/image.jpg"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="is_available"
+              checked={formData.is_available}
+              onChange={(e) => setFormData({ ...formData, is_available: e.target.checked })}
+              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <label htmlFor="is_available" className="text-sm font-medium text-gray-700">
+              Available for rent
+            </label>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Save Equipment
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default EquipmentTab;

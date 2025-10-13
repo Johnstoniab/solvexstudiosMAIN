@@ -14,7 +14,7 @@ export interface BusinessService {
 }
 
 // Equipment rental type - synced with Supabase
-export type RentalEquipment = Database['public']['Tables']['rentals']['Row'];
+export type RentalEquipment = Database['public']['Tables']['rental_equipment']['Row'];
 
 // Team member type
 export interface TeamMember {

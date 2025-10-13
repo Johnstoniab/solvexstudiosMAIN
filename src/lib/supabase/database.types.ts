@@ -59,6 +59,7 @@ export interface Database {
           deleted_at: string | null
           image_fit: string | null
           image_position: string | null
+          image_rotation: string | null
           created_at: string
           updated_at: string
         }
@@ -76,6 +77,7 @@ export interface Database {
           deleted_at?: string | null
           image_fit?: string | null
           image_position?: string | null
+          image_rotation?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -93,6 +95,7 @@ export interface Database {
           deleted_at?: string | null
           image_fit?: string | null
           image_position?: string | null
+          image_rotation?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -141,25 +144,40 @@ export interface Database {
       clients: {
         Row: {
           id: string
+          user_id: string | null
           company: string | null
           industry: string | null
           is_active: boolean | null
+          full_name: string | null
+          email: string | null
+          phone: string | null
+          tier: string | null
           created_at: string
           updated_at: string
         }
         Insert: {
           id: string
+          user_id?: string | null
           company?: string | null
           industry?: string | null
           is_active?: boolean | null
+          full_name?: string | null
+          email?: string | null
+          phone?: string | null
+          tier?: string | null
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
+          user_id?: string | null
           company?: string | null
           industry?: string | null
           is_active?: boolean | null
+          full_name?: string | null
+          email?: string | null
+          phone?: string | null
+          tier?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -173,6 +191,11 @@ export interface Database {
           description: string | null
           status: string | null
           priority: string | null
+          service_key: string | null
+          project_title: string | null
+          brief: string | null
+          attachments: Json
+          requested_at: string | null
           created_at: string
           updated_at: string
         }
@@ -184,6 +207,11 @@ export interface Database {
           description?: string | null
           status?: string | null
           priority?: string | null
+          service_key?: string | null
+          project_title?: string | null
+          brief?: string | null
+          attachments?: Json
+          requested_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -195,6 +223,11 @@ export interface Database {
           description?: string | null
           status?: string | null
           priority?: string | null
+          service_key?: string | null
+          project_title?: string | null
+          brief?: string | null
+          attachments?: Json
+          requested_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -248,6 +281,11 @@ export interface Database {
           id: string
           name: string
           description: string | null
+          team_name: string | null
+          code: string | null
+          lead_member_id: string | null
+          email_alias: string | null
+          is_active: boolean | null
           created_at: string
           updated_at: string
         }
@@ -255,6 +293,11 @@ export interface Database {
           id?: string
           name: string
           description?: string | null
+          team_name?: string | null
+          code?: string | null
+          lead_member_id?: string | null
+          email_alias?: string | null
+          is_active?: boolean | null
           created_at?: string
           updated_at?: string
         }
@@ -262,6 +305,11 @@ export interface Database {
           id?: string
           name?: string
           description?: string | null
+          team_name?: string | null
+          code?: string | null
+          lead_member_id?: string | null
+          email_alias?: string | null
+          is_active?: boolean | null
           created_at?: string
           updated_at?: string
         }
@@ -272,6 +320,11 @@ export interface Database {
           team_id: string | null
           profile_id: string | null
           role: string | null
+          full_name: string | null
+          email: string | null
+          phone: string | null
+          role_title: string | null
+          status: string | null
           created_at: string
         }
         Insert: {
@@ -279,6 +332,11 @@ export interface Database {
           team_id?: string | null
           profile_id?: string | null
           role?: string | null
+          full_name?: string | null
+          email?: string | null
+          phone?: string | null
+          role_title?: string | null
+          status?: string | null
           created_at?: string
         }
         Update: {
@@ -286,6 +344,11 @@ export interface Database {
           team_id?: string | null
           profile_id?: string | null
           role?: string | null
+          full_name?: string | null
+          email?: string | null
+          phone?: string | null
+          role_title?: string | null
+          status?: string | null
           created_at?: string
         }
       }

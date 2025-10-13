@@ -94,6 +94,22 @@ export const onServicesChange = (callback: (payload: any) => void) => {
 
 // --- EXISTING OPERATIONS (Unchanged) ---
 
+export const getRentalEquipment = async () => {
+  return supabase
+    .from('rental_equipment')
+    .select('*')
+    .order('category', { ascending: true });
+};
+
+export const updateRentalEquipment = async (id: string, updates: any) => {
+  return supabase
+    .from('rental_equipment')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+};
+
 export const getOrCreateClientForUser = async (userId: string, email?: string, fullName?: string) => ({ data: null, error: null });
 export const createServiceRequest = async (...args: any[]) => ({ data: null, error: null });
 export const listMyServiceRequests = async (...args: any[]) => ({ data: [], error: null });

@@ -25,6 +25,47 @@ export type Service = Database['public']['Tables']['services']['Row'];
 export type ServiceInsert = Database['public']['Tables']['services']['Insert'];
 export type ServiceUpdate = Database['public']['Tables']['services']['Update'];
 
+// --- RENTAL GEAR OPERATIONS (for Admin Equipment Tab) ---
+
+export const getRentalGear = async () => {
+  return supabase
+    .from('rental_gear')
+    .select('*')
+    .order('category', { ascending: true })
+    .order('name', { ascending: true });
+};
+
+export const createRentalGear = async (gear: RentalGearInsert) => {
+  return supabase
+    .from('rental_gear')
+    .insert(gear)
+    .select()
+    .single();
+};
+
+export const updateRentalGear = async (id: string, updates: RentalGearUpdate) => {
+  return supabase
+    .from('rental_gear')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+};
+
+export const deleteRentalGear = async (id: string) => {
+  return supabase
+    .from('rental_gear')
+    .delete()
+    .eq('id', id);
+};
+
+export const onRentalGearChange = (callback: (payload: any) => void) => {
+  return supabase
+    .channel('public:rental_gear')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'rental_gear' }, callback)
+    .subscribe();
+};
+
 // --- RENTAL EQUIPMENT OPERATIONS ---
 
 // FIX: Queries 'rental_gear' and maps column names to frontend expectations
@@ -77,15 +118,6 @@ export const updateRentalEquipment = async (id: string, updates: Partial<RentalG
 export const deleteRentalEquipment = async (id: string) => {
   return supabase.from('rental_gear').delete().eq('id', id);
 };
-
-// Subscribes to real-time changes on the rental_gear table
-export const onRentalGearChange = (callback: () => void) => {
-  return supabase
-    .channel('public:rental_gear')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'rental_gear' }, callback)
-    .subscribe();
-};
-
 
 // --- REAL-TIME SERVICE OPERATIONS ---
 

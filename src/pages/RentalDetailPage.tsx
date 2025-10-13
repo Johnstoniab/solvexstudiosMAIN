@@ -1,40 +1,66 @@
 // @ts-nocheck
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Check, Calendar, User, Mail, Phone, Building, FileText, MapPin, Shield, Truck } from 'lucide-react';
-import { rentalEquipmentData } from '../data/business/rentals.data';
-import { RentalEquipment } from '../types/business.types';
-import RentalBookingForm from '../components/forms/RentalBookingForm';
+import RentalBookingForm from '../../src/components/forms/RentalBookingForm';
+import { getRentalEquipment } from '../lib/supabase/operations';
+import type { RentalItemDisplay } from '../lib/supabase/operations'; // Use the correct mapped type
 
 const RentalDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const [equipment, setEquipment] = useState<RentalEquipment | null>(null);
+  const [equipment, setEquipment] = useState<RentalItemDisplay | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showBookingForm, setShowBookingForm] = useState(false);
 
+  // FIX: Fetch data from Supabase and find by slug
   useEffect(() => {
-    if (slug) {
-      // Find equipment by converting slug back to title
-      const equipmentTitle = slug.replace(/-/g, ' ');
-      const foundEquipment = rentalEquipmentData.find(
-        item => item.title.toLowerCase() === equipmentTitle.toLowerCase()
-      );
+    if (!slug) return;
+    
+    const fetchEquipment = async () => {
+      setLoading(true);
+      setError(null);
       
-      if (foundEquipment) {
-        setEquipment(foundEquipment);
-      } else {
-        // Redirect to rentals page if equipment not found
-        navigate('/rentals');
+      // Fetch all available equipment using the optimized function
+      const { data, error: fetchError } = await getRentalEquipment(); 
+      
+      if (fetchError) {
+        setError("Failed to load details. Check RLS policy.");
+        setLoading(false);
+        return;
       }
-    }
+      
+      if (data) {
+        // Find equipment by slug (assuming slug is lowercase title with hyphens)
+        const equipmentTitle = slug.replace(/-/g, ' ');
+        const foundEquipment = data.find(
+          item => item.title.toLowerCase() === equipmentTitle.toLowerCase()
+        );
+        
+        if (foundEquipment) {
+          setEquipment(foundEquipment);
+        } else {
+          // Redirect if not found
+          navigate('/rentals', { replace: true });
+        }
+      }
+      setLoading(false);
+    };
+
+    fetchEquipment();
   }, [slug, navigate]);
 
-  if (!equipment) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF5722]"></div>
       </div>
     );
+  }
+  
+  if (error || !equipment) {
+      return <div className="min-h-screen flex items-center justify-center text-red-600 font-semibold p-8">{error || "Equipment not found or is currently unavailable."}</div>;
   }
 
   return (
@@ -67,7 +93,7 @@ const RentalDetailPage: React.FC = () => {
             {/* Video */}
             <div className="aspect-video rounded-xl overflow-hidden shadow-lg">
               <iframe
-                src={equipment.videoUrl}
+                src={equipment.videoUrl || ''}
                 title={`${equipment.title} product video`}
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -75,7 +101,6 @@ const RentalDetailPage: React.FC = () => {
                 className="w-full h-full"
               />
             </div>
-
           </div>
 
           {/* Right Column - Details */}
@@ -88,13 +113,14 @@ const RentalDetailPage: React.FC = () => {
                   <p className="text-sm text-gray-600">per day</p>
                 </div>
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  Available
+                  {equipment.status}
                 </span>
               </div>
               
               <button
                 onClick={() => setShowBookingForm(true)}
                 className="w-full bg-[#FF5722] text-white font-semibold py-3 px-6 rounded-lg hover:bg-[#E64A19] transition-colors"
+                disabled={equipment.status !== 'Available'}
               >
                 Rent Now
               </button>
@@ -107,9 +133,9 @@ const RentalDetailPage: React.FC = () => {
               
               <h4 className="font-semibold text-gray-900 mb-4">Key Features</h4>
               <ul className="space-y-3">
-                {equipment.features.map((feature, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                {(equipment.features || []).map((feature, index) => (
+                  <li key={index} className="flex items-start">
+                    <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
                     <span className="text-gray-700">{feature}</span>
                   </li>
                 ))}

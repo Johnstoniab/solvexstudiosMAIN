@@ -1,99 +1,46 @@
 // @ts-nocheck
 import React, { useState, useEffect } from "react";
 import { ArrowRight, CircleCheck as CheckCircle, ShoppingCart, Loader as Loader2 } from "lucide-react";
-import type { Database } from "../lib/supabase/database.types";
 import { getRentalEquipment } from "../lib/supabase/operations";
+import type { RentalItemDisplay } from "../lib/supabase/operations"; // Import the correct mapped type
 import { useCart } from "../contexts/CartContext";
+import RentalDetailModal from "../components/RentalDetailModal"; // Import the actual component
 
-type RentalEquipment = Database['public']['Tables']['rental_equipment']['Row'];
-
-interface RentalDetailModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  rental: RentalEquipment | null;
-  anchorId: string | null;
-}
-
-const RentalDetailModal: React.FC<RentalDetailModalProps> = ({ isOpen, onClose, rental }) => {
-  if (!isOpen || !rental) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl p-8">
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
-          ×
-        </button>
-        <h2 className="text-2xl font-bold mb-4">{rental.title}</h2>
-        <p className="text-gray-600 mb-6">{rental.subtitle}</p>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="aspect-video">
-            <iframe
-              src={rental.video_url || ''}
-              title={`${rental.title} video`}
-              className="w-full h-full rounded-lg"
-              frameBorder="0"
-              allowFullScreen
-            />
-          </div>
-          
-          <div>
-            <h3 className="font-bold text-gray-800 mb-4">Features</h3>
-            <ul className="space-y-2">
-              {(rental.features || []).map((feature, index) => (
-                <li key={index} className="flex items-start">
-                  <CheckCircle className="w-4 h-4 text-green-500 mr-2 mt-1 flex-shrink-0" />
-                  <span className="text-gray-600 text-sm">{feature}</span>
-                </li>
-              ))}
-            </ul>
-            
-            <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-              <div className="flex justify-between items-center">
-                <span className="text-2xl font-bold">GHS {rental.price}/day</span>
-                <button className="bg-[#FF5722] text-white px-6 py-2 rounded-lg hover:bg-[#E64A19]">
-                  Rent Now
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+// NOTE: The local definitions for RentalEquipment and RentalDetailModal are removed.
 
 const RentalsPage = () => {
-  const [equipmentList, setEquipmentList] = useState<RentalEquipment[]>([]);
+  // Use the correctly mapped type for local state
+  const [equipmentList, setEquipmentList] = useState<RentalItemDisplay[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedRental, setSelectedRental] = useState<RentalEquipment | null>(null);
+  const [selectedRental, setSelectedRental] = useState<RentalItemDisplay | null>(null);
   const [justAdded, setJustAdded] = useState<string | null>(null);
   const { addToCart } = useCart();
 
   useEffect(() => {
     const fetchEquipment = async () => {
       setLoading(true);
-      const { data, error: fetchError } = await getRentalEquipment();
+      // Calls the UPDATED function in operations.ts
+      const { data, error: fetchError } = await getRentalEquipment(); 
       if (fetchError) {
         setError("Could not load equipment. Please try again later.");
-        console.error(fetchError);
+        console.error("Fetch Error:", fetchError);
       } else {
-        // Filter out any retired equipment
-        setEquipmentList((data || []).filter(item => item.status !== 'Retired'));
+        // Data is now in the expected RentalItemDisplay format, already filtered for 'Available'
+        setEquipmentList(data || []);
       }
       setLoading(false);
     };
     fetchEquipment();
   }, []);
   
-  const handleOpenDetails = (equipment: RentalEquipment) => {
+  const handleOpenDetails = (equipment: RentalItemDisplay) => {
     setSelectedRental(equipment);
   };
   
-  const handleAddToCart = (equipment: RentalEquipment) => {
-    addToCart(equipment as any);
+  const handleAddToCart = (equipment: RentalItemDisplay) => {
+    // The cart context expects the item to match the mapped structure (now RentalItemDisplay)
+    addToCart(equipment as any); 
     setJustAdded(equipment.title);
     setTimeout(() => setJustAdded(null), 1500);
   };
@@ -145,7 +92,8 @@ const RentalsPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {equipmentList.map((product) => {
                 const isAdded = justAdded === product.title;
-                const isAvailable = product.status === 'Available';
+                // 'product.status' is now correctly mapped to a string like 'Available' or 'Unavailable'
+                const isAvailable = product.status === 'Available'; 
                 return (
                   <div
                     key={product.title}

@@ -8,6 +8,34 @@ export type Service = Database['public']['Tables']['services']['Row'];
 export type ServiceInsert = Database['public']['Tables']['services']['Insert'];
 export type ServiceUpdate = Database['public']['Tables']['services']['Update'];
 
+// --- RENTAL EQUIPMENT OPERATIONS (NEW) ---
+export type RentalEquipment = Database['public']['Tables']['rental_equipment']['Row'];
+
+// Fetches all equipment for the public (only 'Available' status)
+export const getRentalEquipment = async () => {
+  return supabase.from('rental_equipment').select('*').eq('status', 'Available');
+};
+
+// Fetches ALL equipment for the admin dashboard
+export const getAllRentalEquipment = async () => {
+  return supabase.from('rental_equipment').select('*');
+};
+
+
+// Updates a piece of rental equipment
+export const updateRentalEquipment = async (id: string, updates: Partial<RentalEquipment>) => {
+  return supabase.from('rental_equipment').update(updates).eq('id', id);
+};
+
+// Subscribes to real-time changes on the rental_equipment table
+export const onRentalEquipmentChange = (callback: () => void) => {
+  return supabase
+    .channel('public:rental_equipment')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'rental_equipment' }, callback)
+    .subscribe();
+};
+
+
 // --- REAL-TIME SERVICE OPERATIONS ---
 
 // Get all active (not deleted) services
@@ -48,31 +76,9 @@ export const onServicesChange = (callback: (payload: any) => void) => {
 
 
 // --- EXISTING OPERATIONS (Unchanged) ---
-
-import { rentalEquipmentData } from "../../data/business/rentals.data";
-
-const mapLocalToRow = (item: any) => ({
-  title: item.title,
-  subtitle: item.subtitle,
-  category: item.category ?? null,
-  price: typeof item.price === "number" ? item.price : null,
-  video_url: item.videoUrl ?? null,
-  features: item.features ?? [],
-  images: item.images ?? [],
-  status: item.status ?? "Available",
-  created_at: null,
-  id: null,
-});
-
-export const getRentalEquipment = async () => {
-  const rows = (rentalEquipmentData || []).map(mapLocalToRow);
-  return { data: rows, error: null };
-};
-
 export const getOrCreateClientForUser = async (userId: string, email?: string, fullName?: string) => ({ data: null, error: null });
 export const createServiceRequest = async (...args: any[]) => ({ data: null, error: null });
 export const listMyServiceRequests = async (...args: any[]) => ({ data: [], error: null });
-export const updateRentalEquipment = async (...args: any[]) => ({ data: null, error: null });
 export const getJobTeamsAndPositions = async (...args: any[]) => ({ data: { teams: [], positions: [] }, error: null });
 export const updateJobTeam = async (...args: any[]) => ({ data: null, error: null });
 export const updateJobPosition = async (...args: any[]) => ({ data: null, error: null });

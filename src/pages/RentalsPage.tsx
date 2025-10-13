@@ -6,10 +6,7 @@ import type { RentalItemDisplay } from "../lib/supabase/operations"; // Import t
 import { useCart } from "../contexts/CartContext";
 import RentalDetailModal from "../components/RentalDetailModal"; // Import the actual component
 
-// NOTE: The local definitions for RentalEquipment and RentalDetailModal are removed.
-
 const RentalsPage = () => {
-  // Use the correctly mapped type for local state
   const [equipmentList, setEquipmentList] = useState<RentalItemDisplay[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +36,6 @@ const RentalsPage = () => {
   };
   
   const handleAddToCart = (equipment: RentalItemDisplay) => {
-    // The cart context expects the item to match the mapped structure (now RentalItemDisplay)
     addToCart(equipment as any); 
     setJustAdded(equipment.title);
     setTimeout(() => setJustAdded(null), 1500);
@@ -88,11 +84,12 @@ const RentalsPage = () => {
             <div className="flex justify-center items-center py-12"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>
           ) : error ? (
             <div className="text-center py-12 text-red-600">{error}</div>
+          ) : equipmentList.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">No equipment is currently available for rent.</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {equipmentList.map((product) => {
                 const isAdded = justAdded === product.title;
-                // 'product.status' is now correctly mapped to a string like 'Available' or 'Unavailable'
                 const isAvailable = product.status === 'Available'; 
                 return (
                   <div

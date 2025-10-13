@@ -38,8 +38,7 @@ const ClientsTab: React.FC = () => {
   const [selectedClient, setSelectedClient] = useState<ClientRow | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequestDisplay | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
-
-  // @ts-expect-error - Mock service request data doesn't fully match database schema
+  
   const displayRequests = useMemo(() => mapRequestsToDisplay(requests), [requests]);
 
   const filteredRequests = useMemo(() => {
@@ -261,8 +260,8 @@ const ClientsTab: React.FC = () => {
       {selectedClient && (
         <ClientDetailModal
           client={selectedClient as ClientProfile}
-          requests={displayRequests.filter(r => r.client_id === selectedClient.id) as any}
-          stats={calculateClientStats(selectedClient as ClientProfile, requests as any)}
+          requests={displayRequests.filter(r => r.client_id === selectedClient.id)}
+          stats={calculateClientStats(selectedClient as ClientProfile, requests)}
           onClose={() => setSelectedClient(null)}
         />
       )}

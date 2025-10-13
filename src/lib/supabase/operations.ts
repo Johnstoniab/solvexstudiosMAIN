@@ -4,7 +4,7 @@
 import { supabase } from './client';
 import type { Database } from './database.types';
 
-// Define the shape of data the public frontend expects (based on old mock data)
+// Define the shape of data the public frontend expects
 export type RentalItemDisplay = {
   id: string;
   title: string;          // Mapped from 'name'
@@ -13,7 +13,7 @@ export type RentalItemDisplay = {
   price: number;          // Mapped from 'price_per_day'
   images: string[] | null; // Mapped from 'image_url' (converted to array)
   features: string[] | null; // Placeholder
-  video_url: string | null; // Placeholder
+  videoUrl: string | null; // Placeholder
   status: 'Available' | 'Unavailable' | 'Retired'; // Mapped from 'is_available'
 };
 
@@ -24,47 +24,6 @@ export type RentalGearUpdate = Database['public']['Tables']['rental_gear']['Upda
 export type Service = Database['public']['Tables']['services']['Row'];
 export type ServiceInsert = Database['public']['Tables']['services']['Insert'];
 export type ServiceUpdate = Database['public']['Tables']['services']['Update'];
-
-// --- RENTAL GEAR OPERATIONS (for Admin Equipment Tab) ---
-
-export const getRentalGear = async () => {
-  return supabase
-    .from('rental_gear')
-    .select('*')
-    .order('category', { ascending: true })
-    .order('name', { ascending: true });
-};
-
-export const createRentalGear = async (gear: RentalGearInsert) => {
-  return supabase
-    .from('rental_gear')
-    .insert(gear)
-    .select()
-    .single();
-};
-
-export const updateRentalGear = async (id: string, updates: RentalGearUpdate) => {
-  return supabase
-    .from('rental_gear')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single();
-};
-
-export const deleteRentalGear = async (id: string) => {
-  return supabase
-    .from('rental_gear')
-    .delete()
-    .eq('id', id);
-};
-
-export const onRentalGearChange = (callback: (payload: any) => void) => {
-  return supabase
-    .channel('public:rental_gear')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'rental_gear' }, callback)
-    .subscribe();
-};
 
 // --- RENTAL EQUIPMENT OPERATIONS ---
 
@@ -79,7 +38,9 @@ export const getRentalEquipment = async () => {
       category,
       price_per_day,
       image_url,
-      is_available
+      is_available,
+      video_url,
+      features
     `)
     .eq('is_available', true) // Only fetch available items for public view
     .order('category', { ascending: true })
@@ -94,16 +55,16 @@ export const getRentalEquipment = async () => {
     subtitle: item.description,            // description -> subtitle
     category: item.category,
     price: item.price_per_day,             // price_per_day -> price
-    images: item.image_url ? [item.image_url] : [''], // image_url -> images[0]
-    features: [],                          // Placeholder
-    video_url: '',                         // Placeholder
-    status: item.is_available ? 'Available' : 'Unavailable', // is_available -> status
+    images: item.image_url ? [item.image_url] : [''], 
+    features: Array.isArray(item.features) ? item.features : [], 
+    videoUrl: item.video_url,              // Corrected field name
+    status: item.is_available ? 'Available' : 'Unavailable', 
   }));
   
   return { data: mappedData as RentalItemDisplay[], error: null };
 };
 
-// Fetches ALL equipment for the admin dashboard (using the correct table)
+// Fetches ALL equipment for the admin dashboard
 export const getAllRentalEquipment = async () => {
   return supabase.from('rental_gear').select('*');
 };
@@ -118,6 +79,15 @@ export const updateRentalEquipment = async (id: string, updates: Partial<RentalG
 export const deleteRentalEquipment = async (id: string) => {
   return supabase.from('rental_gear').delete().eq('id', id);
 };
+
+// Subscribes to real-time changes on the rental_gear table
+export const onRentalGearChange = (callback: () => void) => {
+  return supabase
+    .channel('public:rental_gear')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'rental_gear' }, callback)
+    .subscribe();
+};
+
 
 // --- REAL-TIME SERVICE OPERATIONS ---
 

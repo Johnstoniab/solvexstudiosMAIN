@@ -10,12 +10,14 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { businessServicesData } from "../data/business/services.data";
-import { getRentalEquipment } from "../lib/supabase/operations";
+import { getRentalEquipment } from "../lib/supabase/operations"; // USE LIVE FETCH
 import { BusinessService } from "../types/business.types";
-import type { Database } from "../lib/supabase/database.types";
+import type { RentalItemDisplay } from "../lib/supabase/operations"; // Use the correct mapped type
 
-type RentalEquipment = Database['public']['Tables']['rental_equipment']['Row'];
+// NOTE: Removed duplicate useIntersectionObserver and useTypewriterEffect imports
+// and rely on internal definitions or imports from other files if present.
 
+// Re-using internal definitions if they exist in the file:
 const useIntersectionObserver = (ref: React.RefObject<Element>) => {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -75,13 +77,15 @@ const useTypewriterEffect = (text: string, typingSpeed: number = 80) => {
 
   return { displayedText, isTypingComplete };
 };
+// End internal definitions
 
 const HomePage = () => {
   // Refs for intersection observer
   const homeServicesRef = useRef(null);
   const rentalsRef = useRef(null);
   const navigate = useNavigate();
-  const [rentalEquipmentData, setRentalEquipmentData] = useState<RentalEquipment[]>([]);
+  // Changed type to use the live data structure
+  const [rentalEquipmentData, setRentalEquipmentData] = useState<RentalItemDisplay[]>([]); 
 
   // Typewriter effect for main headline
   const headlineText =
@@ -107,13 +111,15 @@ const HomePage = () => {
   const [isHomeServicesVisible] = useIntersectionObserver(homeServicesRef, {});
   const [isRentalsVisible] = useIntersectionObserver(rentalsRef, {});
 
+  // LIVE FETCH LOGIC FOR RENTALS
   useEffect(() => {
     const fetchRentals = async () => {
-      const { data } = await getRentalEquipment();
-      if (data) setRentalEquipmentData(data.slice(0, 6));
+      const { data } = await getRentalEquipment(); // Call live data fetch
+      if (data) setRentalEquipmentData(data.slice(0, 6)); // Slice top 6 for featured
     };
     fetchRentals();
   }, []);
+  // END LIVE FETCH LOGIC
 
   const getAnimationClass = (index: number) => {
     const pattern = index % 3;
@@ -155,6 +161,10 @@ const HomePage = () => {
       el.scrollTo({ left, behavior: "smooth" });
     }
   };
+  
+  // Helper function to create a clean slug from the title
+  const createSlug = (title: string) => title.toLowerCase().replace(/\s/g, '-').replace(/[^a-z0-9-]/g, '');
+
 
   return (
     <div>
@@ -429,13 +439,13 @@ const HomePage = () => {
               }}
             >
               {rentalEquipmentData.slice(0, 6).map((rental) => (
-                <div key={rental.title} className="snap-center shrink-0 w-[82%]">
+                <div key={rental.id} className="snap-center shrink-0 w-[82%]">
                   <Link
-                    to="/rentals"
+                    to={`/rentals/${createSlug(rental.title)}`} // Use slug for detail page
                     className="group relative rounded-xl overflow-hidden shadow-md cursor-pointer transform transition-all duration-300 hover:shadow-xl hover:-translate-y-1 block"
                   >
                     <img
-                      src={rental.images[0]}
+                      src={rental.images?.[0]}
                       alt={rental.title}
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
@@ -466,15 +476,15 @@ const HomePage = () => {
           <div className="hidden md:grid grid-cols-3 lg:grid-cols-6 gap-4">
             {rentalEquipmentData.slice(0, 6).map((rental, index) => (
               <Link
-                to="/rentals"
-                key={rental.title}
+                to={`/rentals/${createSlug(rental.title)}`} // Use slug for detail page
+                key={rental.id}
                 className={`group relative rounded-xl overflow-hidden shadow-md cursor-pointer transform transition-all duration-300 hover:shadow-xl hover:-translate-y-1 opacity-0 ${
                   isRentalsVisible ? "animate-slide-up" : ""
                 }`}
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <img
-                  src={rental.images[0]}
+                  src={rental.images?.[0]}
                   alt={rental.title}
                   className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />

@@ -207,7 +207,7 @@ export const getJobTeamsAndPositions = async (...args: any[]) => ({ data: { team
 export const updateJobTeam = async (...args: any[]) => ({ data: null, error: null });
 export const updateJobPosition = async (...args: any[]) => ({ data: null, error: null });
 export const getCareerApplications = async (...args: any[]) => ({ data: [], error: null });
-export const updateCareerApplicationStatus = async (...args: any[]) => ({ data: null, error: null });
+export const  updateCareerApplicationStatus = async (...args: any[]) => ({ data: null, error: null });
 export const createMember = async (...args: any[]) => ({ data: null, error: null });
 export const getTeams = async () => ({ data: [], error: null });
 export const getMembers = async () => ({ data: [], error: null });

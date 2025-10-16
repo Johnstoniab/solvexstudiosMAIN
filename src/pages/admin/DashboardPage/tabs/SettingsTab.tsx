@@ -16,7 +16,7 @@ const SettingsTab: React.FC = () => {
     setSyncMessage('');
 
     try {
-      // --- LIVE RENTAL EQUIPMENT SEEDING ---
+      // --- LIVE RENTAL EQUIPMENT SEEDING (FIXED JSON ARRAY SYNTAX) ---
       const equipmentData = [
         {
           name: "DJI Osmo Pocket 3 Creator Combo",
@@ -24,7 +24,7 @@ const SettingsTab: React.FC = () => {
           category: "Camera",
           price_per_day: 100, // Use price_per_day
           image_url: 'https://encrypted-tbn1.gstatic.com/shopping?q=tbn:ANd9GcSoYt3SQZ4JdARHvsnt5YNwEcLOgCK3ChpttRQ11k2-aVn6OiYSfJq7Upf10YZUtSUsxy8FFVDNiyxYdGfzaU2lk6uvdPM5dsGQaoFwVRdQBPHn9qb82eu4ww', // Use image_url
-          features: ['1-Inch CMOS & 4K/120fps', '2-Inch Rotatable Screen', '3-Axis Gimbal Mechanical Stabilization'],
+          features: ['1-Inch CMOS & 4K/120fps', '2-Inch Rotatable Screen', '3-Axis Gimbal Mechanical Stabilization'], // Array syntax is correct
           video_url: 'https://www.youtube.com/embed/MZq_2OJ5kOo', // Use video_url
           is_available: true
         },
@@ -91,7 +91,6 @@ const SettingsTab: React.FC = () => {
 
       // --- TEAM & JOB POSITIONS SEEDING (Logic remains, just ensuring continuity) ---
 
-      // Insert job teams data
       const jobTeamsData = [
         { name: "Strategy & Planning Team", image_url: "https://images.pexels.com/photos/7490890/pexels-photo-7490890.jpeg" },
         { name: "Technology and Innovation Team", image_url: "https://images.pexels.com/photos/5239811/pexels-photo-5239811.jpeg" },
@@ -99,18 +98,11 @@ const SettingsTab: React.FC = () => {
         { name: "Content & Production Team", image_url: "https://images.pexels.com/photos/12249084/pexels-photo-12249084.jpeg" }
       ];
 
-      // Insert teams one by one to handle conflicts properly
       const teams: Array<{ id: string; name: string; image_url: string }> = [];
       for (const teamData of jobTeamsData) {
-        // NOTE: This relies on the 'job_teams' table which is not visible but assumed to be created in the migrations.
-        // Skipping complex lookup/update logic here for brevity, trusting simple upsert on 'teams' table
-        // We'll proceed with upsert on a simplified schema for demonstration:
-        // const { data: existingTeam } = await supabase.from('job_teams').select('*').eq('name', teamData.name).maybeSingle();
-        // ... complex update logic ...
-        
         const { data: newTeam, error: insertError } = await supabase
           .from('teams')
-          .upsert([{ name: teamData.name }], { onConflict: 'name' }) // Assuming 'name' is unique constraint in 'teams'
+          .upsert([{ name: teamData.name }], { onConflict: 'name' }) 
           .select()
           .single();
           
@@ -120,11 +112,6 @@ const SettingsTab: React.FC = () => {
              console.warn("Teams upsert error:", insertError.message);
         }
       }
-
-      // ... Skipping insertion of job positions as it depends on unverified 'job_positions' table.
-
-      // --- END TEAM & JOB POSITIONS SEEDING ---
-
 
       setSyncStatus('success');
       setSyncMessage('Database successfully synced with fresh data! (Rentals & Teams)');

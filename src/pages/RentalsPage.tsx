@@ -2,9 +2,10 @@
 import React, { useState, useEffect } from "react";
 import { ArrowRight, CircleCheck as CheckCircle, ShoppingCart, Loader as Loader2 } from "lucide-react";
 import { getRentalEquipment } from "../lib/supabase/operations";
-import type { RentalItemDisplay } from "../lib/supabase/operations"; // Import the correct mapped type
+import type { RentalItemDisplay } from "../lib/supabase/operations"; 
 import { useCart } from "../contexts/CartContext";
-import RentalDetailModal from "../components/RentalDetailModal"; // Import the actual component
+import RentalDetailModal from "../components/RentalDetailModal"; 
+// NOTE: Removed import of static data file.
 
 const RentalsPage = () => {
   const [equipmentList, setEquipmentList] = useState<RentalItemDisplay[]>([]);
@@ -17,13 +18,13 @@ const RentalsPage = () => {
   useEffect(() => {
     const fetchEquipment = async () => {
       setLoading(true);
-      // Calls the UPDATED function in operations.ts
+      // Calls the LIVE data function
       const { data, error: fetchError } = await getRentalEquipment(); 
       if (fetchError) {
         setError("Could not load equipment. Please try again later.");
         console.error("Fetch Error:", fetchError);
       } else {
-        // Data is now in the expected RentalItemDisplay format, already filtered for 'Available'
+        // Data is already in the expected RentalItemDisplay format, filtered for 'Available'
         setEquipmentList(data || []);
       }
       setLoading(false);
@@ -36,6 +37,7 @@ const RentalsPage = () => {
   };
   
   const handleAddToCart = (equipment: RentalItemDisplay) => {
+    // Cast to 'any' for now due to deep type structure inconsistency between old mock and new DB type
     addToCart(equipment as any); 
     setJustAdded(equipment.title);
     setTimeout(() => setJustAdded(null), 1500);
@@ -93,7 +95,7 @@ const RentalsPage = () => {
                 const isAvailable = product.status === 'Available'; 
                 return (
                   <div
-                    key={product.title}
+                    key={product.id} // Use ID as key now that data is live
                     onClick={() => handleOpenDetails(product)}
                     onKeyDown={(e) => { 
                       if (e.key === 'Enter' || e.key === ' ') {

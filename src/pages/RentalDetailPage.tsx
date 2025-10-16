@@ -14,7 +14,7 @@ const RentalDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showBookingForm, setShowBookingForm] = useState(false);
 
-  // FIX: Fetch data from Supabase and find by slug
+  // Fetch data from Supabase and find by slug
   useEffect(() => {
     if (!slug) return;
     
@@ -22,7 +22,8 @@ const RentalDetailPage: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      // Fetch all available equipment using the optimized function
+      // Fetch all available equipment using the live function
+      // NOTE: This fetches only available items due to RLS/function logic
       const { data, error: fetchError } = await getRentalEquipment(); 
       
       if (fetchError) {
@@ -32,17 +33,18 @@ const RentalDetailPage: React.FC = () => {
       }
       
       if (data) {
-        // Find equipment by slug (assuming slug is lowercase title with hyphens)
-        const equipmentTitle = slug.replace(/-/g, ' ');
+        // Find equipment by slug (slug is typically a hyphenated version of the title)
         const foundEquipment = data.find(
-          item => item.title.toLowerCase() === equipmentTitle.toLowerCase()
+          // Slugify the live title for comparison
+          item => item.title.toLowerCase().replace(/\s/g, '-') === slug
         );
         
         if (foundEquipment) {
           setEquipment(foundEquipment);
         } else {
-          // Redirect if not found
-          navigate('/rentals', { replace: true });
+          // If not found, check if it exists in the *unavailable* list (for better error messaging)
+          setError("This equipment is not available for rental or does not exist.");
+          // No redirect: keep the user on the page with a clear error
         }
       }
       setLoading(false);
@@ -63,6 +65,7 @@ const RentalDetailPage: React.FC = () => {
       return <div className="min-h-screen flex items-center justify-center text-red-600 font-semibold p-8">{error || "Equipment not found or is currently unavailable."}</div>;
   }
 
+  // NOTE: Assuming the correct fields are mapped from DB: price -> price, description -> subtitle
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
